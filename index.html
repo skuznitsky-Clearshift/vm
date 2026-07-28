@@ -321,7 +321,7 @@ function copy(txt,msg){
 /* ---- מצב ---- */
 const KEY='cs_vm_v2';
 let S={tab:'calc', company:'', tier:'v2000', mode:'amount', amount:'', cycle:'',
-       fund:'', when:'now', wDate:'', wTime:''};
+       currency:'שקלים', fund:'', when:'now', wDate:'', wTime:''};
 try{const r=localStorage.getItem(KEY); if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 
@@ -508,6 +508,15 @@ function viewCalc(){
     el('span',{class:'cap'},S.mode==='amount'?'סכום השובר':'מחזור שנתי'),
     vi,el('span',{class:'unit'},'$')));
 
+  /* מטבע למימון — נכנס למסמך מתחת ל"סכום לרכישה" */
+  const cw=el('div',{class:'opts'});
+  ['שקלים','דולרים','שקלים/דולרים'].forEach(v=>{
+    const i=el('input',{type:'radio',name:'cur'}); i.checked=S.currency===v;
+    i.addEventListener('change',()=>{S.currency=v;save();render();});
+    cw.append(el('label',{class:S.currency===v?'on':''},i,v));
+  });
+  w.append(cw);
+
   w.append(el('div',{class:'shotwrap',id:'shotwrap'},el('div',{class:'shot',id:'shot'})));
   w.append(el('div',{class:'acts'},
     el('button',{class:'main',onclick:capMode},'מצב צילום'),
@@ -540,6 +549,7 @@ function paintShot(){
       <tr><th>תאריך:</th><td>${fmtD(today)}</td></tr>
       <tr><th>שם החשבון:</th><td>${esc(S.company||'')}</td></tr>
       <tr><th>סכום לרכישה:</th><td>${Number(r.pay).toLocaleString('en-US')}$ + מע"מ</td></tr>
+      <tr><th>מטבע למימון:</th><td>${esc(S.currency||'שקלים')}</td></tr>
     </table>
     <p class="undertake">אני מסכים בזאת לרכוש את החבילה הנ"ל בחשבון הנ"ל
     ומתחייב למימון תוך 3 ימי עסקים.</p>
