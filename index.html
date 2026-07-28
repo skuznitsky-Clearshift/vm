@@ -1,0 +1,655 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#FBFBFC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Voucher Master">
+</head>
+<body style="margin:0">
+<title>VOUCHER MASTER</title>
+<style>
+:root{
+  --bg:#FBFBFC; --card:#FFFFFF; --soft:#F3F4F6;
+  --ink:#16181D; --ink-2:#5A616C; --ink-3:#8A919C;
+  --line:#E3E5E9; --line-2:#CDD1D7;
+  --brand:#1F4A6B; --brand-2:#2E7FB8; --brand-soft:#EAF1F6; --brand-fg:#FFFFFF;
+  --ok:#2C6A4C; --ok-soft:#E5F0EA;
+  --hold:#8A6410; --hold-soft:#F7F0DE;
+  --c1:#2E7FB8; --c2:#1E8F86; --c3:#4E9A4A; --c4:#D19A17; --c5:#CC5A3A; --c6:#7A5FB0;
+  --ui:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono",Consolas,ui-monospace,"SF Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0F1216; --card:#171B21; --soft:#1E232A;
+    --ink:#E9EBEE; --ink-2:#A3AAB5; --ink-3:#79808B;
+    --line:#272D35; --line-2:#3A424D;
+    --brand:#8CBEE0; --brand-2:#A8D2ED; --brand-soft:#17262F; --brand-fg:#0F1216;
+    --ok:#6DBF95; --ok-soft:#152720;
+    --hold:#D9B75F; --hold-soft:#282113;
+    --c1:#79B8E4; --c2:#5CC0B6; --c3:#8FCF7E; --c4:#E8C264; --c5:#EC9678; --c6:#B2A0E4;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1216; --card:#171B21; --soft:#1E232A;
+  --ink:#E9EBEE; --ink-2:#A3AAB5; --ink-3:#79808B;
+  --line:#272D35; --line-2:#3A424D;
+  --brand:#8CBEE0; --brand-2:#A8D2ED; --brand-soft:#17262F; --brand-fg:#0F1216;
+  --ok:#6DBF95; --ok-soft:#152720;
+  --hold:#D9B75F; --hold-soft:#282113;
+  --c1:#79B8E4; --c2:#5CC0B6; --c3:#8FCF7E; --c4:#E8C264; --c5:#EC9678; --c6:#B2A0E4;
+}
+:root[data-theme="light"]{
+  --bg:#FBFBFC; --card:#FFFFFF; --soft:#F3F4F6;
+  --ink:#16181D; --ink-2:#5A616C; --ink-3:#8A919C;
+  --line:#E3E5E9; --line-2:#CDD1D7;
+  --brand:#1F4A6B; --brand-2:#2E7FB8; --brand-soft:#EAF1F6; --brand-fg:#FFFFFF;
+  --ok:#2C6A4C; --ok-soft:#E5F0EA;
+  --hold:#8A6410; --hold-soft:#F7F0DE;
+  --c1:#2E7FB8; --c2:#1E8F86; --c3:#4E9A4A; --c4:#D19A17; --c5:#CC5A3A; --c6:#7A5FB0;
+}
+*{box-sizing:border-box}
+#app{direction:rtl;background:var(--bg);color:var(--ink);font-family:var(--ui);
+  font-size:15px;line-height:1.5;min-height:100vh;padding:0 0 40px}
+.wrap{max-width:660px;margin:0 auto;padding:0 18px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;direction:ltr;
+  unicode-bidi:isolate;display:inline-block}
+
+/* ---- לשוניות ---- */
+.tabs{display:flex;justify-content:center;gap:6px;padding:16px 18px 0}
+.tabs button{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--ink-3);
+  padding:8px 16px;border-radius:999px;min-height:38px}
+.tabs button:hover{color:var(--ink-2);background:var(--soft)}
+.tabs button.on{background:var(--card);border-color:var(--line);color:var(--ink);
+  box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* ---- הכותרת ---- */
+.hero{text-align:center;padding:34px 0 4px}
+@media (max-width:520px){.hero{padding:24px 0 4px}}
+.mark{font-family:var(--mono);font-weight:700;font-size:clamp(26px,8.5vw,46px);
+  letter-spacing:.16em;line-height:1;white-space:nowrap;margin:0}
+/* אות בצבע אחר, במחזור של שישה גוונים בעלי אותה בהירות ורוויה —
+   ככה זה נקרא כמערכת אחת ולא כקונפטי. זה מקור הצבע היחיד בדף. */
+.mark .l1{color:var(--c1)} .mark .l2{color:var(--c2)} .mark .l3{color:var(--c3)}
+.mark .l4{color:var(--c4)} .mark .l5{color:var(--c5)} .mark .l6{color:var(--c6)}
+.mark .sp{display:inline-block;width:.42em}
+.mark-sub{margin-top:11px;font-size:12px;letter-spacing:.22em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase}
+
+/* ---- שורת החיפוש ---- */
+.line{display:flex;align-items:center;gap:12px;margin:22px auto 0;max-width:520px;
+  background:var(--card);border:1px solid var(--line-2);border-radius:999px;
+  padding:6px 20px 6px 8px;box-shadow:0 1px 3px rgba(0,0,0,.05);
+  transition:box-shadow .15s,border-color .15s}
+.line:focus-within{box-shadow:0 2px 10px rgba(0,0,0,.09);border-color:var(--brand)}
+.line .cap{font-size:13.5px;color:var(--ink-2);font-weight:600;white-space:nowrap;flex:none}
+.line input{flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:19px;
+  color:var(--ink);padding:9px 0;direction:ltr;text-align:right;min-height:34px}
+.line input::placeholder{color:var(--ink-3);font-size:16px}
+.line.txt input{font-family:var(--ui);font-size:16px;direction:rtl;text-align:right}
+.line .unit{font-family:var(--mono);color:var(--ink-3);font-size:16px;flex:none;
+  padding-inline-start:4px}
+
+/* ---- שורת בחירה ---- */
+.opts{display:flex;justify-content:center;gap:7px;margin-top:14px;flex-wrap:wrap}
+.opts label{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  border:1px solid var(--line-2);border-radius:999px;padding:7px 15px;font-size:13.5px;
+  background:var(--card);min-height:38px;transition:border-color .12s,background .12s}
+.opts label:hover{border-color:var(--ink-3)}
+.opts label.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:600}
+.opts input{width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0}
+.opts.tight label{padding:6px 12px;font-size:12.5px;min-height:34px}
+.opts.tight .amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.when{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.when input{font-family:var(--ui);font-size:15px;border:1px solid var(--line-2);
+  border-radius:9px;padding:8px 11px;background:var(--card);color:var(--ink);min-height:40px}
+.when input:focus{outline:2px solid var(--brand);outline-offset:-1px}
+
+/* ---- תוצאה ---- */
+.res{margin:26px auto 0;max-width:520px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;overflow:hidden}
+.res-top{padding:13px 18px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.res-top .k{font-size:11px;letter-spacing:.11em;color:var(--ink-3);font-weight:700;text-transform:uppercase}
+.res-top .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:650;
+  direction:ltr;unicode-bidi:isolate}
+.res-top .d{font-size:12px;color:var(--ink-3)}
+.res-b{padding:16px 18px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:7px 0;font-size:14.5px}
+.row+.row{border-top:1px dashed var(--line)}
+.row .k{color:var(--ink-2)}
+.row .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:560;
+  direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+.row.tot{border-top:1.5px solid var(--line-2);margin-top:6px;padding-top:13px}
+.row.tot .k{font-weight:660;color:var(--ink)}
+.row.tot .v{font-size:clamp(26px,7.5vw,34px);font-weight:700;letter-spacing:-.025em;color:var(--brand)}
+.hint{font-size:12.5px;color:var(--ink-3);line-height:1.65;margin-top:12px}
+/* נוסחה נקראת משמאל לימין — בלי בידוד היא מתהפכת בתוך בלוק RTL */
+.hint.eq{font-family:var(--mono);direction:ltr;text-align:right;unicode-bidi:isolate}
+.flag{display:flex;gap:9px;align-items:flex-start;border-radius:11px;padding:11px 13px;
+  font-size:12.5px;line-height:1.6;margin-top:14px}
+.flag.hold{background:var(--hold-soft);color:var(--ink-2)}
+.flag.hold b{color:var(--hold)}
+.flag.ok{background:var(--ok-soft);color:var(--ink-2)}
+.flag.ok b{color:var(--ok)}
+.pip{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
+.flag.hold .pip{background:var(--hold)} .flag.ok .pip{background:var(--ok)}
+.empty{text-align:center;color:var(--ink-3);font-size:13.5px;margin-top:26px}
+
+/* ---- הבלוק שמצלמים ----
+   תמיד בהיר, גם במצב כהה — זה יוצא כצילום מסך ללקוח. */
+.shotwrap{margin:24px auto 0}
+
+/* מצב צילום: הבלוק לבד על כל המסך, מוגדל כמה שנכנס.
+   כך צילום מסך אחד בטלפון תופס אותו שלם ובגודל קריא. */
+.cap-mode{position:fixed;inset:0;z-index:120;background:#EDEFF2;
+  display:flex;align-items:center;justify-content:center;padding:10px;overflow:auto}
+.cap-mode .shot{transform-origin:center center}
+/* כפתור הסגירה נעלם אחרי רגע, כדי שלא ייכנס לצילום המסך של הלקוח.
+   הקשה על הרקע סוגרת בכל מצב. */
+.cap-x{position:fixed;top:10px;left:10px;z-index:121;font-family:var(--ui);
+  font-size:13px;font-weight:600;border:1px solid #C7CCD3;background:#FFFFFF;color:#16181D;
+  border-radius:999px;padding:8px 16px;min-height:38px;cursor:pointer;opacity:.9;
+  transition:opacity .5s}
+.cap-x.gone{opacity:0;pointer-events:none}
+.cap-tip{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:121;
+  font-family:var(--ui);font-size:12.5px;color:#4A515C;background:rgba(255,255,255,.9);
+  border-radius:999px;padding:6px 14px;transition:opacity .5s}
+.cap-tip.gone{opacity:0}
+@media print{
+  #app>.tabs,#app .hero,#app .line,#app .opts,#app .when,#app .foot,#app .acts{display:none !important}
+  .cap-x{display:none !important}
+  .cap-mode{position:static;background:#fff;padding:0}
+  .cap-mode .shot{transform:none !important}
+}
+.shot{background:#FFFFFF;color:#1A1D22;border:1px solid #D8DCE1;border-radius:14px;
+  padding:20px 20px 18px;width:100%;max-width:520px;margin:0 auto;
+  font-family:"Segoe UI","Arial Hebrew",Arial,sans-serif;transform-origin:top center}
+.shot .logo{text-align:center;margin-bottom:14px}
+.shot .logo img{height:26px}
+.shot h3{margin:0 0 3px;font-size:16px;font-weight:700;text-align:center;color:#16181D}
+.shot .lede{text-align:center;font-size:12px;color:#5A616C;margin:0 0 15px}
+.shot table{width:100%;border-collapse:collapse;font-size:12.5px}
+.shot .pk th{font-size:10.5px;letter-spacing:.06em;color:#6B727C;font-weight:700;
+  padding:0 4px 5px;text-align:center;border:0}
+.shot .pk td{padding:0 4px;text-align:center;border:0;font-weight:700;font-size:14px}
+.shot .pk td.fit{font-weight:400;font-size:11px;color:#5A616C;padding-top:5px}
+.shot .valid{text-align:center;font-size:11.5px;color:#5A616C;margin:12px 0 0}
+.shot hr{border:0;border-top:1px solid #E3E5E9;margin:15px 0}
+.shot .frm{font-size:13px}
+.shot .frm th{text-align:right;font-weight:400;color:#5A616C;padding:3px 0;width:38%;border:0}
+.shot .frm td{padding:3px 0;font-weight:700;border:0}
+.shot .undertake{font-size:12px;line-height:1.6;margin:13px 0 0;color:#2C3138}
+.shot .sigs{display:flex;gap:16px;margin-top:18px}
+.shot .sig{flex:1}
+.shot .sig .cap{font-size:11px;color:#6B727C;margin-bottom:20px}
+.shot .sig .rule{border-bottom:1px solid #1A1D22;height:0}
+.shot .terms{font-size:10px;line-height:1.6;color:#7B828C;margin-top:15px}
+.foot{max-width:520px;margin:16px auto 0;border-top:1px dashed var(--line);padding-top:14px}
+.foot .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);
+  font-weight:640;direction:ltr;unicode-bidi:isolate;display:inline-block}
+/* פס העתקה: המשפט כפי שיישלח, וכפתור אחד שמעתיק אותו בדיוק */
+.strip{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;margin-top:10px}
+.strip .lbl{font-size:10px;letter-spacing:.11em;color:var(--ink-3);font-weight:700;
+  text-transform:uppercase;margin-bottom:5px}
+.strip .body{display:flex;gap:11px;align-items:flex-start}
+.strip .t{flex:1;min-width:0;font-size:12.5px;color:var(--ink-2);line-height:1.7;
+  overflow-wrap:anywhere}
+.strip button{flex:none;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+  border:1px solid var(--line-2);background:var(--soft);color:var(--ink);
+  border-radius:8px;padding:7px 12px;min-height:36px}
+.strip button:hover{background:var(--brand-soft);border-color:var(--brand)}
+.strip button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.subnote{font-size:11.5px;color:var(--ink-3);line-height:1.6;margin-top:8px}
+.acts{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.acts button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:9px;
+  border:1px solid var(--line-2);background:var(--card);color:var(--ink);
+  padding:9px 15px;min-height:40px}
+.acts button:hover{background:var(--soft)}
+.acts button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.acts .main{background:var(--brand);border-color:var(--brand);color:var(--brand-fg);font-weight:620}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:9px;
+  font-size:13.5px;font-weight:560;z-index:99;max-width:88vw;text-align:center}
+</style>
+<div id="app">
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</div>
+<script>
+/* ==========================================================================
+   VOUCHER MASTER — קלירשיפט
+   לשונית 1: חישוב שובר + בלוק לצילום ושליחה ללקוח.
+   לשונית 2: כמה שקלים למימון לפי השער היציג.
+   ========================================================================== */
+const VAT = 0.18;
+
+/* לוגו קלירשיפט, מוטבע — מופיע בבלוק שמצלמים ללקוח */
+const CS_LOGO='data:image/png;base64,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';
+
+const VOUCHERS = [
+  {k:'v1000', pay:1000,  bonus:0.05, fee:0.0045, label:'1,000', bonusStyle:'amount'},
+  {k:'v2000', pay:2000,  bonus:0.50, fee:0.0045, label:'2,000', bonusStyle:'percent'},
+  {k:'v2500', pay:2500,  bonus:0.20, fee:0.0030, label:'2,500', bonusStyle:'percent'},
+  {k:'v4000', pay:4000,  bonus:0.35, fee:0.0030, label:'4,000', bonusStyle:'percent'},
+  {k:'v15000',pay:15000, bonus:0.50, fee:0.0030, label:'15,000',bonusStyle:'percent'}
+];
+
+/* ---- שערים יציגים מבנק ישראל ----
+   מוטמע בקובץ, כי דפדפן חסום מלמשוך את הסדרה בעצמו.
+   סוכן מתוזמן מרענן את השורה הזו כל יום פרסום ב-15:47. */
+const RATES_RAW = '2025-07-01:3.369,2025-07-02:3.371,2025-07-03:3.361,2025-07-04:3.34,2025-07-07:3.337,2025-07-08:3.355,2025-07-09:3.328,2025-07-10:3.306,2025-07-11:3.334,2025-07-14:3.365,2025-07-15:3.345,2025-07-16:3.355,2025-07-17:3.359,2025-07-18:3.355,2025-07-21:3.355,2025-07-22:3.354,2025-07-23:3.332,2025-07-24:3.341,2025-07-25:3.361,2025-07-28:3.356,2025-07-29:3.367,2025-07-30:3.366,2025-07-31:3.388,2025-08-01:3.414,2025-08-04:3.404,2025-08-05:3.447,2025-08-06:3.448,2025-08-07:3.417,2025-08-08:3.435,2025-08-11:3.418,2025-08-12:3.429,2025-08-13:3.389,2025-08-14:3.385,2025-08-15:3.38,2025-08-18:3.39,2025-08-19:3.38,2025-08-20:3.4,2025-08-21:3.419,2025-08-22:3.406,2025-08-25:3.378,2025-08-26:3.369,2025-08-27:3.346,2025-08-28:3.325,2025-08-29:3.332,2025-09-01:3.354,2025-09-02:3.386,2025-09-03:3.371,2025-09-04:3.364,2025-09-05:3.343,2025-09-08:3.324,2025-09-09:3.335,2025-09-10:3.336,2025-09-11:3.339,2025-09-12:3.327,2025-09-15:3.341,2025-09-16:3.343,2025-09-17:3.34,2025-09-18:3.343,2025-09-19:3.336,2025-09-25:3.344,2025-09-26:3.366,2025-09-29:3.323,2025-09-30:3.306,2025-10-03:3.315,2025-10-06:3.281,2025-10-08:3.279,2025-10-09:3.242,2025-10-10:3.254,2025-10-13:3.284,2025-10-15:3.291,2025-10-16:3.296,2025-10-17:3.324,2025-10-20:3.311,2025-10-21:3.289,2025-10-22:3.298,2025-10-23:3.309,2025-10-24:3.29,2025-10-27:3.259,2025-10-28:3.259,2025-10-29:3.25,2025-10-30:3.257,2025-10-31:3.243,2025-11-03:3.255,2025-11-04:3.268,2025-11-05:3.272,2025-11-06:3.253,2025-11-07:3.265,2025-11-10:3.23,2025-11-11:3.217,2025-11-12:3.2,2025-11-13:3.209,2025-11-14:3.235,2025-11-17:3.241,2025-11-18:3.27,2025-11-19:3.266,2025-11-20:3.259,2025-11-21:3.28,2025-11-24:3.282,2025-11-25:3.275,2025-11-26:3.279,2025-11-27:3.277,2025-11-28:3.263,2025-12-01:3.264,2025-12-02:3.257,2025-12-03:3.229,2025-12-04:3.237,2025-12-05:3.229,2025-12-08:3.21,2025-12-09:3.213,2025-12-10:3.228,2025-12-11:3.211,2025-12-12:3.202,2025-12-15:3.209,2025-12-16:3.222,2025-12-17:3.223,2025-12-18:3.218,2025-12-19:3.208,2025-12-22:3.206,2025-12-23:3.191,2025-12-24:3.186,2025-12-29:3.203,2025-12-30:3.182,2025-12-31:3.19,2026-01-02:3.181,2026-01-05:3.158,2026-01-06:3.164,2026-01-07:3.175,2026-01-08:3.174,2026-01-09:3.17,2026-01-12:3.15,2026-01-13:3.151,2026-01-14:3.151,2026-01-15:3.156,2026-01-16:3.138,2026-01-19:3.16,2026-01-20:3.166,2026-01-21:3.174,2026-01-22:3.141,2026-01-23:3.135,2026-01-26:3.137,2026-01-27:3.104,2026-01-28:3.091,2026-01-29:3.086,2026-01-30:3.095,2026-02-02:3.101,2026-02-03:3.088,2026-02-04:3.086,2026-02-05:3.117,2026-02-06:3.125,2026-02-09:3.106,2026-02-10:3.084,2026-02-11:3.078,2026-02-12:3.068,2026-02-13:3.081,2026-02-16:3.088,2026-02-17:3.105,2026-02-18:3.098,2026-02-19:3.136,2026-02-20:3.123,2026-02-23:3.123,2026-02-24:3.114,2026-02-25:3.1,2026-02-26:3.11,2026-02-27:3.122,2026-03-02:3.073,2026-03-05:3.072,2026-03-06:3.077,2026-03-09:3.115,2026-03-10:3.091,2026-03-11:3.106,2026-03-12:3.114,2026-03-13:3.147,2026-03-16:3.119,2026-03-17:3.11,2026-03-18:3.096,2026-03-19:3.119,2026-03-20:3.109,2026-03-23:3.112,2026-03-24:3.125,2026-03-25:3.114,2026-03-26:3.129,2026-03-27:3.149,2026-03-30:3.17,2026-03-31:3.165,2026-04-07:3.142,2026-04-09:3.087,2026-04-10:3.057,2026-04-13:3.058,2026-04-14:3.019,2026-04-15:3.014,2026-04-16:2.995,2026-04-17:2.996,2026-04-20:3.003,2026-04-21:2.983,2026-04-23:3.005,2026-04-24:3.003,2026-04-27:2.979,2026-04-28:2.991,2026-04-29:2.961,2026-04-30:2.951,2026-05-01:2.948,2026-05-04:2.962,2026-05-05:2.944,2026-05-06:2.903,2026-05-07:2.907,2026-05-08:2.907,2026-05-11:2.909,2026-05-12:2.909,2026-05-13:2.908,2026-05-14:2.905,2026-05-15:2.916,2026-05-18:2.918,2026-05-19:2.908,2026-05-20:2.92,2026-05-21:2.907,2026-05-26:2.859,2026-05-27:2.84,2026-05-28:2.834,2026-05-29:2.811,2026-06-01:2.813,2026-06-02:2.825,2026-06-03:2.872,2026-06-04:2.895,2026-06-05:2.908,2026-06-08:2.943,2026-06-09:2.938,2026-06-10:2.973,2026-06-11:2.965,2026-06-12:2.935,2026-06-15:2.907,2026-06-16:2.912,2026-06-17:2.918,2026-06-18:2.944,2026-06-19:2.957,2026-06-22:2.966,2026-06-23:2.991,2026-06-24:2.992,2026-06-25:2.979,2026-06-26:3.001,2026-06-29:2.979,2026-06-30:2.978,2026-07-01:2.979,2026-07-02:3.002,2026-07-03:2.996,2026-07-06:3.006,2026-07-07:3.029,2026-07-08:3.044,2026-07-09:3.032,2026-07-10:3.006,2026-07-13:3.025,2026-07-14:3.015,2026-07-15:2.995,2026-07-16:3.005,2026-07-17:3.05,2026-07-20:3.048,2026-07-21:3.049,2026-07-22:3.061,2026-07-24:3.062,2026-07-27:3.04';
+const RATES = RATES_RAW.split(',').map(s=>{const p=s.split(':');return {d:p[0],r:parseFloat(p[1])};})
+                       .filter(x=>x.d&&x.r).sort((a,b)=>a.d<b.d?-1:1);
+
+/* ---- לוח הפרסום ----
+   יום מלא: 15:30, המתנה מ-13:00. מקוצר (שישי/ערב חג): 12:00, המתנה מ-10:00.
+   שבת, ראשון וחג: אין פרסום. ראשון אומת מול הסדרה — אין בה אף יום ראשון. */
+const HOL = {
+  '2026-09-11':'e','2026-09-12':'n','2026-09-13':'n','2026-09-20':'n','2026-09-21':'n',
+  '2026-09-25':'e','2026-09-26':'n','2026-09-27':'n','2026-09-28':'e','2026-09-29':'e',
+  '2026-09-30':'e','2026-10-01':'e','2026-10-02':'e','2026-10-03':'n',
+  '2027-03-23':'n','2027-03-24':'n','2027-04-21':'n','2027-04-22':'n','2027-04-23':'e',
+  '2027-04-26':'e','2027-04-27':'e','2027-04-28':'n','2027-05-12':'n','2027-06-10':'e',
+  '2027-06-11':'n','2027-08-12':'n','2027-10-01':'e','2027-10-02':'n','2027-10-03':'n',
+  '2027-10-10':'n','2027-10-11':'n','2027-10-15':'e','2027-10-16':'n','2027-10-17':'n',
+  '2027-10-18':'e','2027-10-19':'e','2027-10-20':'e','2027-10-21':'e','2027-10-22':'e',
+  '2027-10-23':'n'
+};
+const HOLNAME = {
+  '2026-09-11':'ערב ראש השנה','2026-09-12':'ראש השנה','2026-09-13':'ראש השנה ב׳',
+  '2026-09-20':'ערב יום כיפור','2026-09-21':'יום כיפור','2026-09-25':'ערב סוכות',
+  '2026-09-26':'סוכות','2026-10-02':'הושענא רבה','2026-10-03':'שמחת תורה',
+  '2027-03-23':'פורים','2027-04-21':'ערב פסח','2027-04-22':'פסח','2027-04-28':'שביעי של פסח',
+  '2027-05-12':'יום העצמאות','2027-06-10':'ערב שבועות','2027-06-11':'שבועות',
+  '2027-08-12':'תשעה באב'
+};
+const HDOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const dowOf=iso=>new Date(iso+'T12:00:00Z').getUTCDay();
+/* 'f' מלא · 'e' מקוצר · 'n' אין פרסום */
+function kindOf(iso){
+  const h=HOL[iso]; if(h)return h;
+  const d=dowOf(iso);
+  if(d===6||d===0)return 'n';
+  if(d===5)return 'e';
+  return 'f';
+}
+const PUB   ={f:15*60+30, e:12*60};
+const HOLDAT={f:13*60,    e:10*60};
+
+function ilNow(){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  return {date:`${p.year}-${p.month}-${p.day}`,minutes:(+p.hour)*60+(+p.minute),
+          time:`${p.hour}:${p.minute}`};
+}
+const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const fmtD=d=>d?new Date(d+'T12:00:00Z').toLocaleDateString('he-IL',
+  {day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+
+/* השער שהיה בתוקף ברגע נתון: האחרון שפורסם עד אותו רגע.
+   שער של יום X נכנס לתוקף בשעת הפרסום של X. */
+function rateAt(iso,minutes){
+  for(let i=RATES.length-1;i>=0;i--){
+    const e=RATES[i];
+    if(e.d<iso)return e;
+    if(e.d===iso&&minutes>=PUB[kindOf(e.d)])return e;
+  }
+  return null;
+}
+/* חלון ההמתנה — רק לרגע הנוכחי */
+function holdNow(){
+  const n=ilNow(), k=kindOf(n.date);
+  if(k==='n')return null;
+  if(n.minutes>=HOLDAT[k]&&n.minutes<PUB[k])
+    return {from:HOLDAT[k],to:PUB[k],left:PUB[k]-n.minutes};
+  return null;
+}
+function dayLabel(iso){
+  return HOLNAME[iso]||('יום '+HDOW[dowOf(iso)]);
+}
+
+/* ---- עזרים ---- */
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,a={},...kids)=>{const n=document.createElement(t);
+  for(const[k,v]of Object.entries(a)){
+    if(k==='class')n.className=v; else if(k==='html')n.innerHTML=v;
+    else if(k.startsWith('on'))n.addEventListener(k.slice(2),v);
+    else if(v!==null&&v!==undefined&&v!==false)n.setAttribute(k,v);}
+  kids.flat().forEach(c=>c!=null&&n.append(c.nodeType?c:document.createTextNode(c)));
+  return n;};
+const esc=s=>String(s??'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+const nnum=s=>Number(String(s??'').replace(/[^\d.]/g,''))||0;
+const usd=n=>'$'+Number(n).toLocaleString('en-US');
+const ils=n=>'₪'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function toast(m){const t=el('div',{class:'toast'},m);$('#app').append(t);setTimeout(()=>t.remove(),2600);}
+function copy(txt,msg){
+  const done=()=>toast(msg||'הועתק');
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(done,()=>fb());
+  else fb();
+  function fb(){const ta=el('textarea',{style:'position:fixed;opacity:0;top:0'});ta.value=txt;
+    document.body.append(ta);ta.select();
+    try{document.execCommand('copy');done();}catch(e){toast('ההעתקה נכשלה');}ta.remove();}
+}
+
+/* ---- מצב ---- */
+const KEY='cs_vm_v2';
+let S={tab:'calc', company:'', tier:'v2000', mode:'amount', amount:'', cycle:'',
+       fund:'', when:'now', wDate:'', wTime:''};
+try{const r=localStorage.getItem(KEY); if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+
+/* ---- חישוב השובר ----
+   מתיחה שומרת על אחוז התוספת של המסלול ומעלה את העלות. */
+function calc(){
+  const t=VOUCHERS.find(x=>x.k===S.tier); if(!t)return null;
+  let pay=t.pay, how='מסלול בסיס';
+  if(S.mode==='amount'&&nnum(S.amount)>0){pay=nnum(S.amount);how='לפי סכום';}
+  else if(S.mode==='cycle'&&nnum(S.cycle)>0){
+    pay=Math.ceil((nnum(S.cycle)*t.fee/(1+t.bonus))/100)*100; how='לפי מחזור';
+  }
+  if(pay<t.pay)pay=t.pay;
+  const red=Math.round(pay*(1+t.bonus));
+  return {t,pay,red,bonus:t.bonus,fee:t.fee,how,covers:Math.round(red/t.fee)};
+}
+function usdShort(n){
+  if(n>=1e6){const m=n/1e6;return `${m%1?m.toFixed(1):m} מיליון דולר`;}
+  if(n>=1000)return `${Math.round(n/1000)} אלף דולר`;
+  return `${n} דולר`;
+}
+
+/* ================= תצוגה ================= */
+/* כל אות בצבע אחר, במחזור של שישה גוונים הרמוניים */
+function markEl(){
+  const h=el('h1',{class:'mark'});
+  let i=0;
+  for(const ch of 'VOUCHER MASTER'){
+    if(ch===' '){h.append(el('span',{class:'sp'}));continue;}
+    h.append(el('span',{class:'l'+(i%6+1)},ch)); i++;
+  }
+  return h;
+}
+function hero(sub){
+  return el('div',{class:'hero'},markEl(),el('div',{class:'mark-sub'},sub));
+}
+function tabs(){
+  const t=$('#tabs'); t.innerHTML='';
+  [['calc','חישוב שובר'],['ils','כמה שקלים למימון']].forEach(([k,label])=>{
+    t.append(el('button',{class:S.tab===k?'on':'',onclick:()=>{S.tab=k;save();render();}},label));
+  });
+}
+function render(){
+  if(capOn)capExit();          /* הכרטיס מושאל למצב הצילום — מחזירים אותו לפני בנייה מחדש */
+  tabs();
+  const v=$('#view'); v.innerHTML='';
+  v.append(S.tab==='calc'?viewCalc():viewIls());
+  if(S.tab==='calc')paintShot(); else ilsResult();
+}
+
+/* ---------- לשונית 2: כמה שקלים למימון ---------- */
+function viewIls(){
+  const w=el('div',{class:'wrap'});
+  w.append(hero('כמה שקלים למימון'));
+
+  const inp=el('input',{type:'text',inputmode:'decimal',value:S.fund,placeholder:'2,000'});
+  inp.addEventListener('input',()=>{S.fund=inp.value;save();ilsResult();});
+  w.append(el('div',{class:'line'},
+    el('span',{class:'cap'},'סכום שובר'),inp,el('span',{class:'unit'},'$')));
+
+  const opts=el('div',{class:'opts'});
+  [['now','לפי עכשיו'],['past','זמן עבר']].forEach(([k,label])=>{
+    const i=el('input',{type:'radio',name:'when'}); i.checked=S.when===k;
+    i.addEventListener('change',()=>{
+      S.when=k;
+      if(k==='past'&&!S.wDate){const n=ilNow();S.wDate=n.date;S.wTime=n.time;}
+      save();render();});
+    opts.append(el('label',{class:S.when===k?'on':''},i,label));
+  });
+  w.append(opts);
+
+  if(S.when==='past'){
+    const d=el('input',{type:'date',value:S.wDate});
+    const t=el('input',{type:'time',value:S.wTime});
+    d.addEventListener('input',()=>{S.wDate=d.value;save();ilsResult();});
+    t.addEventListener('input',()=>{S.wTime=t.value;save();ilsResult();});
+    w.append(el('div',{class:'when'},d,t));
+  }
+
+  w.append(el('div',{id:'ilsres'}));
+  return w;
+}
+function whenNow(){
+  if(S.when==='past'&&S.wDate){
+    const p=(S.wTime||'23:59').split(':');
+    return {iso:S.wDate,minutes:(+p[0])*60+(+p[1]||0),past:true};
+  }
+  const n=ilNow(); return {iso:n.date,minutes:n.minutes,past:false};
+}
+function ilsResult(){
+  const host=$('#ilsres'); if(!host)return;
+  host.innerHTML='';
+  const q=whenNow(), e=rateAt(q.iso,q.minutes);
+
+  if(!e){
+    host.append(el('div',{class:'empty'},'אין שער מוטמע לתאריך הזה. הטבלה מתחילה ב-'+fmtD(RATES[0].d)+'.'));
+    return;
+  }
+  const box=el('div',{class:'res'});
+  box.append(el('div',{class:'res-top'},
+    el('div',{},el('div',{class:'k'},q.past?'השער שהיה בתוקף':'השער שבתוקף עכשיו'),
+      el('div',{class:'d'},'שער יציג מיום '+fmtD(e.d)+' · '+dayLabel(e.d))),
+    el('div',{class:'v'},e.r.toFixed(4))));
+
+  const b=el('div',{class:'res-b'});
+  const amt=nnum(S.fund);
+  if(amt>0){
+    const net=amt*e.r, vat=net*VAT, tot=net+vat;
+    const row=(k,v,c)=>el('div',{class:'row '+(c||'')},
+      el('span',{class:'k'},k),el('span',{class:'v'},v));
+    b.append(row('סכום השובר',usd(amt)));
+    b.append(row('× שער יציג '+e.r,ils(net)));
+    b.append(row('מע"מ 18%',ils(vat)));
+    b.append(row('למימון',ils(tot),'tot'));
+    b.append(el('div',{class:'hint eq'},
+      `${amt.toLocaleString('en-US')} × ${e.r} × 1.18 = ${ils(tot)}`));
+    b.append(el('div',{class:'acts'},
+      el('button',{class:'main',onclick:()=>copy(String(Math.round(tot*100)/100),'הסכום הועתק')},'העתק סכום'),
+      el('button',{onclick:()=>copy(
+        `למימון: ${ils(tot)}\n${usd(amt)} + מע"מ 18%\nשער יציג ${e.r} מיום ${fmtD(e.d)}`,
+        'הפירוט הועתק')},'העתק פירוט')));
+  }else{
+    b.append(el('div',{class:'empty'},'הקלד את סכום השובר בדולרים'));
+  }
+
+  const h=holdNow();
+  if(!q.past&&h)
+    b.append(el('div',{class:'flag hold'},el('span',{class:'pip'}),
+      el('span',{},el('b',{},`חלון המתנה ${hhmm(h.from)}–${hhmm(h.to)}. `),
+        `השער היציג של היום יתפרסם בעוד ${h.left} דקות. עד אז לא נועלים סכום שקלי — `+
+        `החישוב למעלה הוא לפי השער הקודם.`)));
+  else if(!q.past)
+    b.append(el('div',{class:'flag ok'},el('span',{class:'pip'}),
+      el('span',{},el('b',{},'תקף לחיוב. '),validUntilText())));
+
+  box.append(b); host.append(box);
+}
+/* עד מתי השער הנוכחי תקף — כלומר מתי נפתח חלון ההמתנה הבא */
+function validUntilText(){
+  const n=ilNow();
+  for(let i=0;i<21;i++){
+    const dt=new Date(n.date+'T12:00:00Z'); dt.setUTCDate(dt.getUTCDate()+i);
+    const iso=dt.toISOString().slice(0,10), k=kindOf(iso);
+    if(k==='n')continue;
+    if(i===0&&n.minutes>=HOLDAT[k])continue;
+    return `עד יום ${HDOW[dowOf(iso)]} בשעה ${hhmm(HOLDAT[k])}.`;
+  }
+  return '';
+}
+
+/* ---------- לשונית 1: חישוב שובר ---------- */
+function viewCalc(){
+  const w=el('div',{class:'wrap'});
+  w.append(hero('חישוב שובר'));
+
+  const ci=el('input',{type:'text',value:S.company,placeholder:'לא חובה'});
+  ci.addEventListener('input',()=>{S.company=ci.value;save();paintShot();});
+  w.append(el('div',{class:'line txt'},el('span',{class:'cap'},'שם החברה'),ci));
+
+  const tw=el('div',{class:'opts tight'});
+  VOUCHERS.forEach(t=>{
+    const i=el('input',{type:'radio',name:'tier'}); i.checked=S.tier===t.k;
+    i.addEventListener('change',()=>{S.tier=t.k;save();render();});
+    tw.append(el('label',{class:S.tier===t.k?'on':''},i,el('span',{class:'amt'},t.label)));
+  });
+  w.append(tw);
+
+  const mw=el('div',{class:'opts'});
+  [['amount','לפי סכום שובר'],['cycle','לפי מחזור']].forEach(([k,label])=>{
+    const i=el('input',{type:'radio',name:'mode'}); i.checked=S.mode===k;
+    i.addEventListener('change',()=>{S.mode=k;save();render();});
+    mw.append(el('label',{class:S.mode===k?'on':''},i,label));
+  });
+  w.append(mw);
+
+  const t=VOUCHERS.find(x=>x.k===S.tier);
+  const vi=el('input',{type:'text',inputmode:'numeric',
+    value:S.mode==='amount'?S.amount:S.cycle,
+    placeholder:S.mode==='amount'?String(t.pay):'2,700,000'});
+  vi.addEventListener('input',()=>{
+    if(S.mode==='amount')S.amount=vi.value; else S.cycle=vi.value;
+    save();paintShot();});
+  w.append(el('div',{class:'line'},
+    el('span',{class:'cap'},S.mode==='amount'?'סכום השובר':'מחזור שנתי'),
+    vi,el('span',{class:'unit'},'$')));
+
+  w.append(el('div',{class:'shotwrap',id:'shotwrap'},el('div',{class:'shot',id:'shot'})));
+  w.append(el('div',{class:'acts'},
+    el('button',{class:'main',onclick:capMode},'מצב צילום'),
+    el('button',{onclick:()=>window.print()},'הדפס / PDF')));
+  w.append(el('div',{class:'foot',id:'foot'}));
+  return w;
+}
+
+function paintShot(){
+  const host=$('#shot'); if(!host)return;
+  const r=calc(); if(!r)return;
+  const today=ilNow().date;
+  const bonus=r.t.bonusStyle==='amount'
+    ? `הנחה של ${Math.round(r.pay*r.bonus).toLocaleString('en-US')}$`
+    : `תוספת של ${Math.round(r.bonus*100)}%`;
+  host.innerHTML=`
+    <div class="logo"><img src="${CS_LOGO}" alt="Clearshift"></div>
+    <h3>חבילת פריפייד לעסקים</h3>
+    <p class="lede">הוזלה משמעותית בעמלות ההעברה</p>
+    <table class="pk">
+      <tr><th>מתאים עבור</th><th>עלות</th><th>שווי</th><th>הנחה</th></tr>
+      <tr>
+        <td class="fit">חשבון עסקי עד ${esc(usdShort(r.covers))} בשנה</td>
+        <td>${usd(r.pay)}</td><td>${usd(r.red)}</td><td>${esc(bonus)}</td>
+      </tr>
+    </table>
+    <p class="valid">החבילה תקפה 12 חודשים מתאריך ההנפקה ואינה כוללת מע"מ</p>
+    <hr>
+    <table class="frm">
+      <tr><th>תאריך:</th><td>${fmtD(today)}</td></tr>
+      <tr><th>שם החשבון:</th><td>${esc(S.company||'')}</td></tr>
+      <tr><th>סכום לרכישה:</th><td>${Number(r.pay).toLocaleString('en-US')}$ + מע"מ</td></tr>
+    </table>
+    <p class="undertake">אני מסכים בזאת לרכוש את החבילה הנ"ל בחשבון הנ"ל
+    ומתחייב למימון תוך 3 ימי עסקים.</p>
+    <div class="sigs">
+      <div class="sig"><div class="cap">חתימה</div><div class="rule"></div></div>
+    </div>
+    <p class="terms">שווי החבילה נצבר כזיכוי עמלות ומנוצל מול עמלות ההעברה עד לגמר היתרה.
+    הסכומים נקובים בדולר ואינם כוללים מע"מ. יתרה שלא נוצלה תוך 12 חודשים אינה מועברת
+    לתקופה הבאה.</p>`;
+  foot(r);
+}
+
+/* מצב צילום — הבלוק לבד על כל המסך, מוגדל למקסימום שנכנס.
+   כך צילום מסך אחד תופס אותו שלם, בלי הלשוניות ובלי הערת השקלים. */
+let capOn=false, capFade=null;
+function capMode(){
+  if(capOn)return;
+  capOn=true;
+  const card=$('#shot'), home=$('#shotwrap');
+  const layer=el('div',{class:'cap-mode',id:'capmode'});
+  const close=el('button',{class:'cap-x',id:'capx',onclick:capExit},'סגור');
+  const tip=el('div',{class:'cap-tip',id:'captip'},'צלם מסך · הקשה על הרקע סוגרת');
+  layer.append(card);
+  layer.addEventListener('click',ev=>{if(ev.target===layer)capExit();});
+  document.body.append(layer,close,tip);
+  /* מתפוגגים כדי שהמסך יהיה נקי לצילום */
+  capFade=setTimeout(()=>{close.classList.add('gone');tip.classList.add('gone');},2600);
+  const fit=()=>{
+    card.style.transform='none';
+    const w=card.offsetWidth, h=card.offsetHeight;
+    const k=Math.min((window.innerWidth-20)/w,(window.innerHeight-20)/h,1.8);
+    card.style.transform='scale('+k.toFixed(3)+')';
+  };
+  fit();
+  layer._fit=fit; layer._home=home;
+  window.addEventListener('resize',fit);
+  document.addEventListener('keydown',capKey);
+}
+function capExit(){
+  const layer=$('#capmode'); if(!layer)return;
+  const card=$('#shot');
+  card.style.transform='none';
+  layer._home.append(card);
+  window.removeEventListener('resize',layer._fit);
+  document.removeEventListener('keydown',capKey);
+  clearTimeout(capFade);
+  layer.remove();
+  ['#capx','#captip'].forEach(s=>{const n=$(s); if(n)n.remove();});
+  capOn=false;
+}
+function capKey(e){ if(e.key==='Escape')capExit(); }
+/* תנאי השירות של השובר. הכתובת נקייה — הקידומת chrome-extension של תוסף
+   ה-PDF שמופיעה כשמעתיקים משורת הכתובת לא עובדת אצל הלקוח. */
+const TERMS_URL='https://clearshift.co.il/wp-content/uploads/2025/07/Voucher-Terms-June-2025.pdf';
+const TERMS_TEXT='אלו תנאי השירות של השובר - '+TERMS_URL;
+
+/* פס עם משפט מוכן לשליחה וכפתור שמעתיק אותו כמו שהוא */
+function strip(label,text,btn,toastMsg){
+  const t=el('div',{class:'t'},text);
+  return el('div',{class:'strip'},
+    el('div',{class:'lbl'},label),
+    el('div',{class:'body'},t,
+      el('button',{onclick:()=>copy(text,toastMsg)},btn||'העתק')));
+}
+
+function foot(r){
+  const host=$('#foot'); if(!host)return;
+  const n=ilNow(), e=rateAt(n.date,n.minutes), h=holdNow();
+  host.innerHTML='';
+  if(e){
+    const tot=r.pay*e.r*(1+VAT);
+    const sentence=`למימון בשקלים: ${ils(tot)} — סכום השובר ${usd(r.pay)} + מע"מ 18%, `+
+      `לפי השער היציג של בנק ישראל ${e.r} מיום ${fmtD(e.d)}.`;
+    host.append(strip('סכום בשקלים',sentence,'העתק','המשפט הועתק'));
+    host.append(el('div',{class:'subnote'},
+      h?`חלון המתנה ${hhmm(h.from)}–${hhmm(h.to)} — הסכום זמני עד לפרסום השער של היום.`
+       :'לא נכלל בצילום — הבלוק שנשלח ללקוח נקוב בדולרים בלבד.'));
+  }
+  host.append(strip('תנאי השירות',TERMS_TEXT,'העתק','תנאי השירות הועתקו'));
+}
+
+render();
+setInterval(()=>{if(capOn)return;
+  if(S.tab==='ils')ilsResult(); else{const r=calc();if(r)foot(r);}},60000);
+</script>
+
+</body>
+</html>
