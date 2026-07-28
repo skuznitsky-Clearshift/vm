@@ -4,52 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta name="theme-color" content="#FBFBFC">
+<meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Voucher Master">
 </head>
 <body style="margin:0">
 <title>VOUCHER MASTER</title>
 <style>
-:root{
-  --bg:#FBFBFC; --card:#FFFFFF; --soft:#F3F4F6;
+/* רקע לבן בכל מצב — הכלי לא מתחלף למצב כהה גם אם המכשיר מוגדר כהה.
+   הקווים והמילויים האפורים הם מה שנותן את ההיררכיה על גבי הלבן. */
+:root, :root[data-theme="light"], :root[data-theme="dark"]{
+  --bg:#FFFFFF; --card:#FFFFFF; --soft:#F4F5F7;
   --ink:#16181D; --ink-2:#5A616C; --ink-3:#8A919C;
-  --line:#E3E5E9; --line-2:#CDD1D7;
+  --line:#E2E5EA; --line-2:#C9CED5;
   --brand:#1F4A6B; --brand-2:#2E7FB8; --brand-soft:#EAF1F6; --brand-fg:#FFFFFF;
   --ok:#2C6A4C; --ok-soft:#E5F0EA;
   --hold:#8A6410; --hold-soft:#F7F0DE;
   --c1:#2E7FB8; --c2:#1E8F86; --c3:#4E9A4A; --c4:#D19A17; --c5:#CC5A3A; --c6:#7A5FB0;
   --ui:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",system-ui,-apple-system,sans-serif;
   --mono:"Cascadia Mono",Consolas,ui-monospace,"SF Mono",monospace;
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --bg:#0F1216; --card:#171B21; --soft:#1E232A;
-    --ink:#E9EBEE; --ink-2:#A3AAB5; --ink-3:#79808B;
-    --line:#272D35; --line-2:#3A424D;
-    --brand:#8CBEE0; --brand-2:#A8D2ED; --brand-soft:#17262F; --brand-fg:#0F1216;
-    --ok:#6DBF95; --ok-soft:#152720;
-    --hold:#D9B75F; --hold-soft:#282113;
-    --c1:#79B8E4; --c2:#5CC0B6; --c3:#8FCF7E; --c4:#E8C264; --c5:#EC9678; --c6:#B2A0E4;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0F1216; --card:#171B21; --soft:#1E232A;
-  --ink:#E9EBEE; --ink-2:#A3AAB5; --ink-3:#79808B;
-  --line:#272D35; --line-2:#3A424D;
-  --brand:#8CBEE0; --brand-2:#A8D2ED; --brand-soft:#17262F; --brand-fg:#0F1216;
-  --ok:#6DBF95; --ok-soft:#152720;
-  --hold:#D9B75F; --hold-soft:#282113;
-  --c1:#79B8E4; --c2:#5CC0B6; --c3:#8FCF7E; --c4:#E8C264; --c5:#EC9678; --c6:#B2A0E4;
-}
-:root[data-theme="light"]{
-  --bg:#FBFBFC; --card:#FFFFFF; --soft:#F3F4F6;
-  --ink:#16181D; --ink-2:#5A616C; --ink-3:#8A919C;
-  --line:#E3E5E9; --line-2:#CDD1D7;
-  --brand:#1F4A6B; --brand-2:#2E7FB8; --brand-soft:#EAF1F6; --brand-fg:#FFFFFF;
-  --ok:#2C6A4C; --ok-soft:#E5F0EA;
-  --hold:#8A6410; --hold-soft:#F7F0DE;
-  --c1:#2E7FB8; --c2:#1E8F86; --c3:#4E9A4A; --c4:#D19A17; --c5:#CC5A3A; --c6:#7A5FB0;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 #app{direction:rtl;background:var(--bg);color:var(--ink);font-family:var(--ui);
@@ -64,8 +38,9 @@
   border:1px solid transparent;background:transparent;color:var(--ink-3);
   padding:8px 16px;border-radius:999px;min-height:38px}
 .tabs button:hover{color:var(--ink-2);background:var(--soft)}
-.tabs button.on{background:var(--card);border-color:var(--line);color:var(--ink);
-  box-shadow:0 1px 2px rgba(0,0,0,.05)}
+/* על רקע לבן הלשונית הפעילה מסומנת בקו ובצל, לא במילוי */
+.tabs button.on{background:var(--card);border-color:var(--line-2);color:var(--ink);
+  box-shadow:0 1px 3px rgba(22,24,29,.1)}
 .tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
 /* ---- הכותרת ---- */
