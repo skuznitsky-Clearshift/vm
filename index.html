@@ -81,6 +81,10 @@
 .opts input{width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0}
 .opts.tight label{padding:6px 12px;font-size:12.5px;min-height:34px}
 .opts.tight .amt{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* כותרת מעל שורת בחירה — אותה טיפוגרפיה של כותרת המשנה שמתחת ללוגו */
+.opthd{margin:20px 0 0;text-align:center;font-size:12px;letter-spacing:.22em;
+  color:var(--ink-3);font-weight:600;text-transform:uppercase}
+.opthd+.opts{margin-top:9px}
 
 .when{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .when input{font-family:var(--ui);font-size:15px;border:1px solid var(--line-2);
@@ -512,6 +516,7 @@ function viewCalc(){
     vi,el('span',{class:'unit'},'$')));
 
   /* מטבע למימון — נכנס למסמך מתחת ל"סכום לרכישה" */
+  w.append(el('div',{class:'opthd'},'מטבע למימון שובר'));
   const cw=el('div',{class:'opts'});
   ['שקלים','דולרים','שקלים/דולרים'].forEach(v=>{
     const i=el('input',{type:'radio',name:'cur'}); i.checked=S.currency===v;
