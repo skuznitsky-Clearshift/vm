@@ -162,6 +162,9 @@
 .shot .frm th{text-align:right;font-weight:400;color:#5A616C;padding:3px 0;width:38%;border:0}
 .shot .frm td{padding:3px 0;font-weight:700;border:0}
 .shot .undertake{font-size:12px;line-height:1.6;margin:13px 0 0;color:#2C3138}
+/* קישור לתנאי השירות. עובר כקישור לחיץ גם בהדפסה ל-PDF, כי זה עוגן אמיתי. */
+.shot .tlink{margin:7px 0 0;font-size:12px}
+.shot .tlink a{color:#1F7BC4;text-decoration:underline;text-underline-offset:2px}
 .shot .sigs{display:flex;gap:16px;margin-top:18px}
 .shot .sig{flex:1}
 .shot .sig .cap{font-size:11px;color:#6B727C;margin-bottom:20px}
@@ -553,6 +556,7 @@ function paintShot(){
     </table>
     <p class="undertake">אני מסכים בזאת לרכוש את החבילה הנ"ל בחשבון הנ"ל
     ומתחייב למימון תוך 3 ימי עסקים.</p>
+    <p class="tlink"><a href="${TERMS_URL}" target="_blank" rel="noopener">תנאים</a></p>
     <div class="sigs">
       <div class="sig"><div class="cap">חתימה</div><div class="rule"></div></div>
     </div>
