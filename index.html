@@ -561,9 +561,7 @@ function viewCalc(){
   w.append(el('div',{class:'acts'},
     el('button',{class:'main',onclick:e=>downloadImage(e.currentTarget)},'הורד תמונה'),
     el('button',{onclick:capMode},'מצב צילום'),
-    el('button',{onclick:()=>{
-      toast('ביעד ההדפסה בחר "שמור כ-PDF"');
-      setTimeout(()=>window.print(),700);}},'שמור PDF')));
+    el('button',{onclick:savePdf},'שמור PDF')));
   w.append(el('div',{class:'foot',id:'foot'}));
   return w;
 }
@@ -646,6 +644,28 @@ function capExit(){
 }
 function capKey(e){ if(e.key==='Escape')capExit(); }
 
+/* שם הקובץ: שם הלקוח בלי גרשיים, ואחריו גודל השובר — העלות בלבד,
+   בלי מע"מ ובלי התוספת. למשל: ספיר בעמ שובר 1000 */
+function docFileName(){
+  const r=calc();
+  const company=String(S.company||'')
+    .replace(/["'״׳“”‘’]/g,'')  /* גרשיים ומרכאות מכל הסוגים */
+    .replace(/[\\\/:*?<>|]/g,'')                              /* תווים שאסורים בשם קובץ */
+    .replace(/\s+/g,' ').trim();
+  return (company?company+' ':'')+'שובר'+(r?' '+r.pay:'');
+}
+
+/* שמירה כ-PDF דרך חלון ההדפסה. הדפדפן גוזר את שם הקובץ המוצע מכותרת
+   המסמך, אז מחליפים אותה לרגע ומחזירים אחרי ההדפסה. */
+function savePdf(){
+  const prev=document.title;
+  document.title=docFileName();
+  const restore=()=>{document.title=prev;window.removeEventListener('afterprint',restore);};
+  window.addEventListener('afterprint',restore);
+  toast('ביעד ההדפסה בחר "שמור כ-PDF"');
+  setTimeout(()=>{ window.print(); setTimeout(restore,60000); },700);
+}
+
 /* ---- הורדת הטופס כתמונה ----
    דפדפן לא יכול לכתוב PDF בלי ספריית PDF מוטמעת, אבל תמונה כן — וזה מה
    שבאמת יורד למכשיר בלחיצה אחת ומתאים לשליחה בוואטסאפ.
@@ -691,9 +711,7 @@ async function downloadImage(btn){
     cx.drawImage(img,0,0);
     const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
     if(!blob)throw new Error('toBlob failed');
-    const r=calc();
-    const name='שובר '+(S.company?S.company+' ':'')+
-      (r?Number(r.pay).toLocaleString('en-US'):'')+' '+ilNow().date+'.png';
+    const name=docFileName()+'.png';
     const url=URL.createObjectURL(blob);
     const a=el('a',{href:url,download:name});
     document.body.append(a); a.click(); a.remove();
