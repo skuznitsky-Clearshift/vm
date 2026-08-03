@@ -233,6 +233,9 @@
 .acts button:hover{background:var(--soft)}
 .acts button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .acts .main{background:var(--brand);border-color:var(--brand);color:var(--brand-fg);font-weight:620}
+/* ירוק ווטסאפ — הצבע היחיד בדף שאינו מהפלטה, כי הוא מזהה יעד חיצוני */
+.acts .wa{background:#25A34A;border-color:#25A34A;color:#FFFFFF;font-weight:620}
+.acts .wa:hover{background:#1F8C3F;border-color:#1F8C3F}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:9px;
   font-size:13.5px;font-weight:560;z-index:99;max-width:88vw;text-align:center}
@@ -599,6 +602,7 @@ function viewCalc(){
 
   w.append(el('div',{class:'shotwrap',id:'shotwrap'},el('div',{class:'shot',id:'shot'})));
   w.append(el('div',{class:'acts'},
+    el('button',{class:'wa',onclick:e=>shareWhatsApp(e.currentTarget)},'ווטסאפ'),
     el('button',{class:'main',onclick:e=>downloadImage(e.currentTarget)},'הורד תמונה'),
     el('button',{onclick:capMode},'מצב צילום'),
     el('button',{onclick:savePdf},'שמור PDF')));
@@ -723,42 +727,78 @@ function shotCss(){
   }
   return out;
 }
+/* מייצר את התמונה ומחזיר Blob. משמש גם להורדה וגם לשיתוף. */
+async function shotBlob(k){
+  const card=$('#shot'); if(!card)throw new Error('no card');
+  const w=card.offsetWidth, h=card.offsetHeight;
+  const clone=card.cloneNode(true);
+  clone.style.transform='none'; clone.style.margin='0';
+  clone.style.width=w+'px'; clone.style.maxWidth='none';
+  /* XMLSerializer סוגר תגיות ריקות כמו img — בלי זה ה-SVG לא נפרס */
+  const markup=new XMLSerializer().serializeToString(clone);
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
+    '<foreignObject x="0" y="0" width="100%" height="100%">'+
+    '<div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style="width:'+w+'px;background:#fff">'+
+    '<style>'+shotCss()+'</style>'+markup+'</div></foreignObject></svg>';
+  const img=new Image();
+  img.decoding='sync';
+  await new Promise((res,rej)=>{
+    img.onload=res; img.onerror=()=>rej(new Error('svg load failed'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+  const cv=document.createElement('canvas');
+  cv.width=Math.round(w*k); cv.height=Math.round(h*k);
+  const cx=cv.getContext('2d');
+  cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,cv.width,cv.height);
+  cx.setTransform(k,0,0,k,0,0);
+  cx.drawImage(img,0,0);
+  const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
+  if(!blob)throw new Error('toBlob failed');
+  return blob;
+}
+function saveBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=el('a',{href:url,download:name});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),20000);
+}
 async function downloadImage(btn){
-  const card=$('#shot'); if(!card)return;
   const old=btn.textContent; btn.disabled=true; btn.textContent='מכין…';
   try{
-    const w=card.offsetWidth, h=card.offsetHeight, k=3;   /* k=3 → תמונה חדה */
-    const clone=card.cloneNode(true);
-    clone.style.transform='none'; clone.style.margin='0';
-    clone.style.width=w+'px'; clone.style.maxWidth='none';
-    /* XMLSerializer סוגר תגיות ריקות כמו img — בלי זה ה-SVG לא נפרס */
-    const markup=new XMLSerializer().serializeToString(clone);
-    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
-      '<foreignObject x="0" y="0" width="100%" height="100%">'+
-      '<div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style="width:'+w+'px;background:#fff">'+
-      '<style>'+shotCss()+'</style>'+markup+'</div></foreignObject></svg>';
-    const img=new Image();
-    img.decoding='sync';
-    await new Promise((res,rej)=>{
-      img.onload=res; img.onerror=()=>rej(new Error('svg load failed'));
-      img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-    });
-    const cv=document.createElement('canvas');
-    cv.width=Math.round(w*k); cv.height=Math.round(h*k);
-    const cx=cv.getContext('2d');
-    cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,cv.width,cv.height);
-    cx.setTransform(k,0,0,k,0,0);
-    cx.drawImage(img,0,0);
-    const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
-    if(!blob)throw new Error('toBlob failed');
-    const name=docFileName()+'.png';
-    const url=URL.createObjectURL(blob);
-    const a=el('a',{href:url,download:name});
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),20000);
+    saveBlob(await shotBlob(3),docFileName()+'.png');
     toast('הטופס הורד כתמונה');
   }catch(e){
     toast('הדפדפן לא אישר יצירת תמונה — השתמש ב"מצב צילום" וצלם מסך');
+  }finally{ btn.disabled=false; btn.textContent=old; }
+}
+
+/* ---- שליחה בוואטסאפ ----
+   אין דרך לפתוח את ווטסאפ עם תמונה בפנים: קישורי wa.me מעבירים טקסט בלבד.
+   הדרך היחידה להעביר קובץ היא תפריט השיתוף של מערכת ההפעלה, שבו ווטסאפ
+   מופיע כיעד. במחשב שאין בו שיתוף קבצים — מורידים את התמונה ופותחים
+   ווטסאפ ווב, והמשתמש גורר אותה לשיחה. */
+async function shareWhatsApp(btn){
+  const old=btn.textContent; btn.disabled=true; btn.textContent='מכין…';
+  let blob=null;
+  try{ blob=await shotBlob(3); }
+  catch(e){
+    toast('יצירת התמונה נכשלה — השתמש ב"מצב צילום" וצלם מסך');
+    btn.disabled=false; btn.textContent=old; return;
+  }
+  const name=docFileName()+'.png';
+  try{
+    const file=new File([blob],name,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:docFileName()});
+      btn.disabled=false; btn.textContent=old; return;         /* נשלח, או שהמשתמש ביטל */
+    }
+    throw new Error('file share unsupported');
+  }catch(e){
+    if(e&&e.name==='AbortError'){ btn.disabled=false; btn.textContent=old; return; }
+    /* גיבוי למחשב: מורידים ופותחים ווטסאפ ווב */
+    saveBlob(blob,name);
+    toast('התמונה הורדה — גרור אותה לשיחה בוואטסאפ');
+    window.open('https://web.whatsapp.com/','_blank','noopener');
   }finally{ btn.disabled=false; btn.textContent=old; }
 }
 /* תנאי השירות של השובר. הכתובת נקייה — הקידומת chrome-extension של תוסף
