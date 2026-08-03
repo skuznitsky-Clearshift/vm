@@ -118,8 +118,11 @@
 .flag.hold b{color:var(--hold)}
 .flag.ok{background:var(--ok-soft);color:var(--ink-2)}
 .flag.ok b{color:var(--ok)}
+.flag.bad{background:#FBE9E7;color:var(--ink-2)}
+.flag.bad b{color:#9E2F27}
 .pip{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
 .flag.hold .pip{background:var(--hold)} .flag.ok .pip{background:var(--ok)}
+.flag.bad .pip{background:#9E2F27}
 .empty{text-align:center;color:var(--ink-3);font-size:13.5px;margin-top:26px}
 
 /* ---- הבלוק שמצלמים ----
@@ -332,6 +335,41 @@ function holdNow(){
 function dayLabel(iso){
   return HOLNAME[iso]||('יום '+HDOW[dowOf(iso)]);
 }
+const addD=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+
+/* ---- זיהוי פיגור ----
+   הכלי לא סומך על כך שהעדכון האוטומטי עבד. הוא מחשב מה התאריך שאמור
+   להיות בידיו — יום הפרסום האחרון שכבר עבר — ומשווה למה שמוטמע בו.
+   אם חסרים ימי פרסום הוא אומר את זה במפורש, במקום להציג שער ישן כאילו
+   הוא של היום. */
+function lastExpectedRateDate(){
+  const n=ilNow();
+  for(let i=0;i<21;i++){
+    const iso=addD(n.date,-i), k=kindOf(iso);
+    if(k==='n')continue;
+    if(i===0&&n.minutes<PUB[k])continue;
+    return iso;
+  }
+  return '';
+}
+function staleBy(){
+  const exp=lastExpectedRateDate(), have=RATES[RATES.length-1].d;
+  if(!exp||have>=exp)return null;
+  let miss=0, cur=exp;
+  while(cur>have&&miss<40){
+    if(kindOf(cur)!=='n')miss++;
+    cur=addD(cur,-1);
+  }
+  return {expected:exp,have:have,missing:miss};
+}
+function staleFlag(){
+  const s=staleBy(); if(!s)return null;
+  return el('div',{class:'flag bad'},el('span',{class:'pip'}),
+    el('span',{},el('b',{},`השער בכלי אינו מעודכן — חסרים ${s.missing} ימי פרסום. `),
+      `האחרון שיש בכלי הוא של ${fmtD(s.have)}, והאחרון שאמור להיות הוא של ${fmtD(s.expected)}. `+
+      `אל תנקוב בסכום שקלי לפני שבודקים את השער באתר בנק ישראל.`));
+}
 
 /* ---- עזרים ---- */
 const $=(s,r=document)=>r.querySelector(s);
@@ -486,6 +524,8 @@ function ilsResult(){
     b.append(el('div',{class:'empty'},'הקלד את סכום השובר בדולרים'));
   }
 
+  /* אזהרת פיגור קודמת לכל השאר — היא פוסלת את המספר שמעליה */
+  if(!q.past){ const sf=staleFlag(); if(sf)b.append(sf); }
   const h=holdNow();
   if(!q.past&&h)
     b.append(el('div',{class:'flag hold'},el('span',{class:'pip'}),
@@ -743,6 +783,7 @@ function foot(r){
     const tot=r.pay*e.r*(1+VAT);
     const sentence=`למימון בשקלים: ${ils(tot)} — סכום השובר ${usd(r.pay)} + מע"מ 18%, `+
       `לפי השער היציג של בנק ישראל ${e.r} מיום ${fmtD(e.d)}.`;
+    const sf=staleFlag(); if(sf)host.append(sf);
     host.append(strip('סכום בשקלים',sentence,'העתק','המשפט הועתק'));
     host.append(el('div',{class:'subnote'},
       h?`חלון המתנה ${hhmm(h.from)}–${hhmm(h.to)} — הסכום זמני עד לפרסום השער של היום.`
