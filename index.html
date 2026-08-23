@@ -682,8 +682,19 @@
     return s;
   }
 
+  /* A device with nowhere to keep an id is not a device we can count. In the
+     SharePoint srcdoc iframe every storage call throws, so a fresh random id
+     per page load would report ten "devices" for ten opens and bury the real
+     ones in noise. Collapse them all onto one reserved id instead: the log
+     still shows the visit, and it shows honestly that we cannot tell who. */
+  var NOSTORE = '00000000';
   var iid = sget(K_ID);
-  if (!iid || !/^[0-9a-f]{8}$/.test(iid)) { iid = newId(); sset(K_ID, iid); }
+  if (!storeOK) {
+    iid = NOSTORE;
+  } else if (!iid || !/^[0-9a-f]{8}$/.test(iid)) {
+    iid = newId();
+    if (!sset(K_ID, iid)) { iid = NOSTORE; }
+  }
   var who = sget(K_WHO) || '';
 
   /* Where is this copy running from? This is the field that tells you who is
