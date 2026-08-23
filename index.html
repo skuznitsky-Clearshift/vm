@@ -565,6 +565,500 @@
 })();
 
 </script>
+<!--SKGATE--><script data-tool="f4" data-ver="2.0" data-built="2026-08-17">
+/* ============================================================================
+   SK Gate — version gate, kill switch and first-run identity for the SK tools
+   ----------------------------------------------------------------------------
+   Drop-in, zero dependencies, ES5. Goes in <head> IMMEDIATELY AFTER sk-intro.js:
+
+       <script data-tool="a7" data-ver="1.6" data-built="2026-08-23"
+               data-log="https://script.google.com/macros/s/AKfy.../exec"
+       > ...this file, inlined by build.ps1... [closing script tag]
+
+   NOTE the text above avoids writing a real closing script tag. When this file
+   is inlined, the HTML parser ends the script at the first "</scr"+"ipt"
+   followed by whitespace, "/" or ">" — a space is enough, so even a mention
+   inside a comment silently truncates the whole module. inject-gate.ps1
+   escapes it too, but do not rely on that.
+
+   What it does, in order:
+     1. hides the tool and paints the intro's own background, so nothing of the
+        app is visible or clickable until a verdict exists;
+     2. asks the decision file (numbers only) whether this build may run, while
+        the SK intro plays over it — a 300ms round trip inside a 4.8s animation;
+     3. on first ever run, asks "מה השם שלך? (בעברית)" once per device;
+     4. reveals the tool, or paints one of exactly two block messages;
+     5. reports the open (and any action the tool calls SKGate.use() for).
+
+   SECURITY MODEL — read before changing anything here.
+   The decision file returns NUMBERS ONLY. Every string a user can ever see
+   lives in MSG below, inside the build. A compromised host can therefore do
+   exactly one thing: refuse entry. It cannot inject markup, script, text or a
+   URL into any machine. The rules that keep that true:
+     - JSON.parse only. Never eval / new Function / <script src> / innerHTML.
+     - 2KB cap on the response, enforced before parsing.
+     - Allow-list into a FRESH object. Never Object.assign onto config.
+     - textContent for every render. No HTML from anywhere but this file.
+     - No URL is ever read from the response, and nothing navigates.
+     - The response is never written to storage.
+     - fail-open: no answer, bad answer, or broken JSON => the tool runs.
+       An outage on our side must never stop the team working. Local build-date
+       expiry is the only offline brake, and ?nocheck=1 overrides everything.
+
+   API:  SKGate.ready   -> Promise, resolves true (allowed) / false (blocked)
+         SKGate.use(s)  -> log one meaningful action ("pdf", "xlsx", ...)
+         SKGate.id      -> this device id (8 hex) — the value to block
+         SKGate.who     -> the stored name
+         SKGate.forget() -> clear identity on this device (for testing)
+   ==========================================================================*/
+(function () {
+  'use strict';
+  if (window.SKGate) return;
+
+  /* ---------------------------------------------------------------- config */
+  /* Lives in the vm repo for now because that repo already exists and already
+     has working push credentials. Moving it is a one-line change here plus a
+     re-run of apply-all.ps1 — see README.txt. */
+  var DEFAULT_GATE =
+    'https://raw.githubusercontent.com/skuznitsky-Clearshift/vm/main/gate.json';
+
+  var tag = document.currentScript;
+  var ds  = (tag && tag.dataset) || {};
+
+  var CFG = {
+    tool  : String(ds.tool || '??').slice(0, 8),
+    verS  : String(ds.ver  || '0'),
+    built : String(ds.built || ''),
+    maxAge: parseInt(ds.maxage, 10) || 60,   /* days of offline grace */
+    ttl   : parseInt(ds.ttl, 10) || 24,      /* hours an OK verdict is reused */
+    gate  : String(ds.gate || DEFAULT_GATE),
+    log   : String(ds.log || ''),
+    wait  : parseInt(ds.wait, 10) || 3500    /* ms before giving up on the net */
+  };
+
+  /* "1.6" -> 1006 so that 1.10 sorts above 1.9 */
+  function vnum(s) {
+    var p = String(s).replace(/[^0-9.]/g, '').split('.');
+    return ((parseInt(p[0], 10) || 0) * 1000) + (parseInt(p[1], 10) || 0);
+  }
+  var VER = vnum(CFG.verS);
+
+  /* The only two messages that can ever be shown. The decision file picks one
+     by number; it cannot supply a third. */
+  var MSG = {
+    1: 'הגרסה הזו ישנה - נא להוריד גרסה עדכנית',
+    2: 'אין גישה לממשק - צור קשר עם ספיר'
+  };
+
+  /* The team. A name typed that is not on this list is accepted and marked as
+     new in the log, so adding someone does not require a build. */
+  var TEAM = ['ספיר', 'יובל', 'יוסי', 'יצי', 'אסף', 'גדעון',
+              'דניאל', 'עידו', 'אביהו', 'אנה', 'ישי', 'אודי'];
+
+  /* ------------------------------------------------------- guarded storage */
+  /* In the SharePoint srcdoc iframe every one of these THROWS SecurityError
+     rather than returning null, and an unguarded read kills the whole script. */
+  var storeOK = true;
+  function sget(k) {
+    try { return window.localStorage.getItem(k); }
+    catch (e) { storeOK = false; return null; }
+  }
+  function sset(k, v) {
+    try { window.localStorage.setItem(k, v); return true; }
+    catch (e) { storeOK = false; return false; }
+  }
+  function sdel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+  /* All tools share one file:// storage bucket (verified: Chrome reports
+     origin "file://" for every path), so keys must be namespaced — and the
+     identity is therefore asked once per device for ALL tools, not per tool. */
+  var K_ID = 'sk.iid', K_WHO = 'sk.who', K_OK = 'sk.gateok';
+
+  function newId() {
+    var a = new Uint8Array(4), s = '', i;
+    try { window.crypto.getRandomValues(a); }
+    catch (e) { for (i = 0; i < 4; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (i = 0; i < 4; i++) s += ('0' + a[i].toString(16)).slice(-2);
+    return s;
+  }
+
+  var iid = sget(K_ID);
+  if (!iid || !/^[0-9a-f]{8}$/.test(iid)) { iid = newId(); sset(K_ID, iid); }
+  var who = sget(K_WHO) || '';
+
+  /* Where is this copy running from? This is the field that tells you who is
+     about to get stuck on an old build. */
+  function srcKind() {
+    try {
+      if (location.protocol !== 'file:') return 'web';
+      var p = decodeURIComponent(location.pathname);
+      return p.indexOf('ClearShift Tools') >= 0 ? 'shared' : 'local';
+    } catch (e) { return '?'; }
+  }
+
+  /* ------------------------------------------------------------------ chrome */
+  var HIDE_ID = 'skg-hide';
+  var CSS = [
+    /* keep the app invisible AND unclickable until a verdict exists. Not
+       display:none — layout still has to happen so the app can measure itself. */
+    'html.skg-wait{background:#050818}',
+    'html.skg-wait body>*:not(.skg):not(.ski){visibility:hidden!important;pointer-events:none!important}',
+    '.skg{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;',
+    '  background:radial-gradient(100% 80% at 50% 42%,#0A1130 0%,#050818 40%,#010206 72%,#000 100%);',
+    '  font-family:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;',
+    '  direction:rtl;color:#DCE6FF;-webkit-font-smoothing:antialiased}',
+    '.skg.gone{opacity:0;transition:opacity .3s ease;pointer-events:none}',
+    '.skg-box{width:min(92vw,430px);text-align:center;padding:0 20px}',
+    '.skg-rule{height:1px;margin:0 auto 22px;width:min(58vmin,260px);',
+    '  background:linear-gradient(90deg,transparent,rgba(138,169,255,.55),transparent)}',
+    '.skg-h{font-size:19px;font-weight:640;letter-spacing:-.01em;color:#F2F6FF;margin:0 0 10px}',
+    '.skg-p{font-size:14.5px;line-height:1.65;color:#93A8D6;margin:0}',
+    '.skg-p.big{font-size:16px;color:#DCE6FF}',
+    '.skg-f{margin-top:26px;font-size:11.5px;letter-spacing:.06em;color:#4C5F8C}',
+    '.skg-row{margin-top:18px;display:flex;gap:8px;justify-content:center}',
+    '.skg-in{flex:1;min-width:0;padding:11px 13px;border-radius:9px;text-align:right;',
+    '  background:rgba(255,255,255,.05);border:1px solid rgba(138,169,255,.28);',
+    '  color:#F2F6FF;font:inherit;font-size:15px;outline:none}',
+    '.skg-in:focus{border-color:#2F55E8;background:rgba(47,85,232,.12)}',
+    '.skg-b{padding:11px 20px;border-radius:9px;border:0;cursor:pointer;font:inherit;',
+    '  font-size:14.5px;font-weight:640;background:#2F55E8;color:#fff}',
+    '.skg-b:hover{background:#4468F5}',
+    '.skg-err{margin-top:9px;font-size:12.5px;color:#E0796F;min-height:16px}',
+    '.skg-dots{margin-top:14px;font-size:12.5px;color:#4C5F8C;letter-spacing:.08em}',
+    '@media (prefers-reduced-motion:reduce){.skg,.skg *{transition:none!important}}'
+  ].join('\n');
+
+  var st = document.createElement('style');
+  st.id = HIDE_ID;
+  st.textContent = CSS;
+  (document.head || document.documentElement).appendChild(st);
+  document.documentElement.classList.add('skg-wait');
+
+  var cover = null;
+  function mkCover() {
+    if (cover) return cover;
+    cover = document.createElement('div');
+    cover.className = 'skg';
+    cover.style.opacity = '0';
+    /* invisible but still on top: without this it would swallow the click that
+       skips the intro */
+    cover.style.pointerEvents = 'none';
+    var box = document.createElement('div');
+    box.className = 'skg-box';
+    cover.appendChild(box);
+    cover._box = box;
+    (document.body || document.documentElement).appendChild(cover);
+    return cover;
+  }
+  /* build a panel out of textContent only — never innerHTML, anywhere */
+  function paint(parts) {
+    var c = mkCover(), box = c._box, i, p, el;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var rule = document.createElement('div'); rule.className = 'skg-rule';
+    box.appendChild(rule);
+    for (i = 0; i < parts.length; i++) {
+      p = parts[i];
+      el = document.createElement(p.t || 'div');
+      if (p.c) el.className = p.c;
+      if (p.x != null) el.textContent = p.x;
+      if (p.f) p.f(el);
+      box.appendChild(el);
+    }
+    c.style.opacity = '1';
+    c.style.pointerEvents = 'auto';
+    return box;
+  }
+  function reveal() {
+    document.documentElement.classList.remove('skg-wait');
+    if (cover) {
+      cover.classList.add('gone');
+      setTimeout(function () { if (cover && cover.parentNode) cover.parentNode.removeChild(cover); }, 320);
+    }
+  }
+
+  /* --------------------------------------------------------------- telemetry */
+  /* An <img> beacon, deliberately: an image request is not subject to CORS at
+     all, so the log endpoint needs no permissive headers and we never read a
+     response. Nothing comes back into the page. */
+  function ping(ev, label) {
+    if (!CFG.log) return;
+    try {
+      var q = '?ev=' + encodeURIComponent(ev) +
+              '&tool=' + encodeURIComponent(CFG.tool) +
+              '&ver=' + encodeURIComponent(CFG.verS) +
+              '&iid=' + encodeURIComponent(iid) +
+              '&who=' + encodeURIComponent(who) +
+              '&src=' + encodeURIComponent(srcKind()) +
+              (label ? '&x=' + encodeURIComponent(String(label).slice(0, 40)) : '') +
+              '&t=' + (new Date()).getTime();
+      var im = new Image();
+      im.referrerPolicy = 'no-referrer';
+      im.src = CFG.log + q;
+    } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------------- decision */
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+
+  /* Rebuild a known-shape object from the response. Nothing from the wire is
+     kept by reference, merged, or trusted for its type. */
+  function sanitize(txt) {
+    var o = JSON.parse(txt), out = { all: 0, msg: 1, min: 0, k: [], dev: [] }, t, i, n;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (o.all === 2) out.all = 2;
+    if (o.msg === 2) out.msg = 2;
+    if (o.tools && typeof o.tools === 'object' && has(o.tools, CFG.tool)) {
+      t = o.tools[CFG.tool];
+      if (t && typeof t === 'object' && !Array.isArray(t)) {
+        if (typeof t.min === 'number' && isFinite(t.min)) out.min = t.min | 0;
+        if (Array.isArray(t.k)) {
+          for (i = 0; i < t.k.length && out.k.length < 60; i++) {
+            n = t.k[i];
+            if (typeof n === 'number' && isFinite(n)) out.k.push(n | 0);
+          }
+        }
+      }
+    }
+    if (Array.isArray(o.dev)) {
+      for (i = 0; i < o.dev.length && out.dev.length < 800; i++) {
+        if (typeof o.dev[i] === 'string' && /^[0-9a-f]{8}$/.test(o.dev[i])) out.dev.push(o.dev[i]);
+      }
+    }
+    return out;
+  }
+
+  function verdictFrom(g) {
+    if (g.dev.indexOf(iid) >= 0) return { ok: false, code: 2 };   /* this device */
+    if (g.all === 2)             return { ok: false, code: g.msg }; /* everything */
+    if (VER > 0 && g.min && VER < g.min) return { ok: false, code: 1 };
+    if (VER > 0 && g.k.indexOf(VER) >= 0) return { ok: false, code: 1 };
+    return { ok: true, code: 0 };
+  }
+
+  /* offline brake: only the build date, and only after the grace window */
+  function localVerdict() {
+    var last = sget(K_OK), now = (new Date()).getTime(), d, age;
+    if (last && /^[0-9]{1,15}$/.test(last) &&
+        (now - parseInt(last, 10)) < CFG.ttl * 3600e3) return { ok: true, code: 0 };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(CFG.built)) {
+      d = Date.parse(CFG.built + 'T00:00:00');
+      if (isFinite(d)) {
+        age = (now - d) / 86400e3;
+        if (age > CFG.maxAge) return { ok: false, code: 1 };
+      }
+    }
+    return { ok: true, code: 0 };   /* fail-open */
+  }
+
+  function ask() {
+    return new Promise(function (res) {
+      if (/[?&]nocheck=1\b/.test(location.search)) return res({ ok: true, code: 0 });
+      if (!CFG.gate || !window.fetch) return res(localVerdict());
+
+      var ctl = null, killed = false;
+      try { ctl = new AbortController(); } catch (e) {}
+      var giveUp = setTimeout(function () {
+        killed = true;
+        try { if (ctl) ctl.abort(); } catch (e) {}
+        res(localVerdict());
+      }, CFG.wait);
+
+      var url = CFG.gate + (CFG.gate.indexOf('?') < 0 ? '?' : '&') +
+                't=' + (new Date()).getTime();
+      var opt = { cache: 'no-store', redirect: 'follow', referrerPolicy: 'no-referrer' };
+      if (ctl) opt.signal = ctl.signal;
+
+      fetch(url, opt).then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.text();
+      }).then(function (txt) {
+        if (killed) return;
+        clearTimeout(giveUp);
+        if (txt.length > 2048) throw new Error('too big');   /* cap before parse */
+        var g = sanitize(txt);
+        if (!g) throw new Error('shape');
+        var v = verdictFrom(g);
+        if (v.ok) sset(K_OK, String((new Date()).getTime()));
+        res(v);
+      })['catch'](function () {
+        if (killed) return;
+        clearTimeout(giveUp);
+        res(localVerdict());   /* unreachable, 404, garbage -> fail open */
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------------- intro */
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, false);
+    } else { fn(); }
+  }
+
+  /* Resolves when the SK intro is done — or straight away when it is not
+     playing at all. data-once="session" makes sk-intro skip play() entirely,
+     and in that case it never fires sk-intro:done, so waiting on the event
+     alone would hang the gate for its whole safety timeout. */
+  function introDone() {
+    return new Promise(function (res) {
+      var settled = false;
+      function fin() { if (!settled) { settled = true; res(); } }
+      document.addEventListener('sk-intro:done', fin, false);
+      if (!window.SKIntro) { onReady(fin); return; }
+      onReady(function () {
+        setTimeout(function () { if (!document.querySelector('.ski')) fin(); }, 150);
+      });
+      setTimeout(fin, 12000);
+    });
+  }
+
+  /* -------------------------------------------------------------- enrollment */
+  function enroll() {
+    return new Promise(function (res) {
+      if (!storeOK) return res();          /* nowhere to keep it — don't nag */
+      if (who) return res();
+
+      var listId = 'skg-team';
+      var box = paint([
+        { c: 'skg-h', x: 'מה השם שלך? (בעברית)' },
+        { c: 'skg-p', x: 'פעם אחת בלבד, לכל הכלים על המכשיר הזה.' }
+      ]);
+
+      var row = document.createElement('div'); row.className = 'skg-row';
+      var inp = document.createElement('input');
+      inp.className = 'skg-in';
+      inp.type = 'text';
+      inp.setAttribute('list', listId);
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      inp.maxLength = 40;
+      inp.placeholder = 'התחל להקליד…';
+
+      var dl = document.createElement('datalist');
+      dl.id = listId;
+      for (var i = 0; i < TEAM.length; i++) {
+        var op = document.createElement('option');
+        op.value = TEAM[i];
+        dl.appendChild(op);
+      }
+
+      var btn = document.createElement('button');
+      btn.className = 'skg-b';
+      btn.type = 'button';
+      btn.textContent = 'המשך';
+
+      row.appendChild(inp); row.appendChild(btn);
+      box.appendChild(row); box.appendChild(dl);
+
+      var err = document.createElement('div'); err.className = 'skg-err';
+      box.appendChild(err);
+
+      var foot = document.createElement('div');
+      foot.className = 'skg-f';
+      foot.textContent = 'מזהה מכשיר ' + iid;
+      box.appendChild(foot);
+
+      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+
+      function go() {
+        var v = inp.value.replace(/\s+/g, ' ').trim();
+        /* Hebrew letters, space, hyphen, geresh. Own-goal injection is as easy
+           as any other, so the user's own input is validated too. */
+        if (v.length < 2 || v.length > 40 || !/^[א-ת][א-ת '׳-]*$/.test(v)) {
+          err.textContent = 'נא להקליד שם בעברית';
+          try { inp.focus(); } catch (e) {}
+          return;
+        }
+        who = v;
+        sset(K_WHO, who);
+        ping('join');
+        res();
+      }
+      btn.addEventListener('click', go, false);
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); go(); }
+      }, false);
+    });
+  }
+
+  /* Make the device id readable off a screenshot: the build stamp already sits
+     in the top bar of every tool, so the id goes next to it. */
+  function stampId() {
+    try {
+      var e = document.querySelector('.ver');
+      if (e && e.textContent.indexOf(iid) < 0) {
+        e.textContent = e.textContent + ' · ' + iid;
+        if (e.title) e.title = e.title + ' — מזהה מכשיר ' + iid;
+      }
+    } catch (x) {}
+  }
+
+  /* -------------------------------------------------------------------- flow */
+  var resolveReady;
+  var ready = new Promise(function (r) { resolveReady = r; });
+
+  var asking = ask();          /* fires immediately, in parallel with the intro */
+  var waiting = introDone();
+
+  /* Dead-man switch. If 20s pass with nothing painted and nothing decided, the
+     gate is what is broken — let the person work. It fires only in limbo: a
+     real block has painted a panel by then and is left alone. */
+  setTimeout(function () {
+    if (cover && cover._box && cover._box.firstChild) return;
+    document.documentElement.classList.remove('skg-wait');
+    if (cover && cover.parentNode) cover.parentNode.removeChild(cover);
+  }, 20000);
+
+  /* if the answer is late, say so rather than showing a frozen logo */
+  var slow = setTimeout(function () {
+    if (!document.querySelector('.skg-dots')) {
+      var box = mkCover()._box;
+      if (!box.firstChild) {
+        paint([{ c: 'skg-dots', x: 'מאמת גרסה…' }]);
+      }
+    }
+  }, 5200);
+
+  Promise.all([asking, waiting]).then(function (r) {
+    clearTimeout(slow);
+    var v = r[0];
+
+    if (!v.ok) {
+      ping('block');
+      paint([
+        { c: 'skg-h', x: 'הממשק אינו זמין' },
+        { c: 'skg-p big', x: MSG[v.code] || MSG[2] },
+        { c: 'skg-f', x: CFG.tool + ' · ' + CFG.verS + ' · מזהה מכשיר ' + iid }
+      ]);
+      resolveReady(false);
+      return;
+    }
+
+    enroll().then(function () {
+      stampId();
+      ping('open');
+      reveal();
+      resolveReady(true);
+    });
+  })['catch'](function () {
+    /* the gate itself must never be what breaks a tool */
+    clearTimeout(slow);
+    reveal();
+    resolveReady(true);
+  });
+
+  window.SKGate = {
+    ready : ready,
+    use   : function (label) { ping('use', label); },
+    get id()  { return iid; },
+    get who() { return who; },
+    forget: function () { sdel(K_WHO); sdel(K_ID); sdel(K_OK); },
+    config: CFG
+  };
+})();
+
+</script><!--/SKGATE-->
+
 <div id="app">
   <div class="tabs" id="tabs"></div>
   <div id="view"></div>
