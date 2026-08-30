@@ -28,6 +28,13 @@
   var q = location.search || '';
   if (/[?&]via=apps\b/.test(q) || /[?&]nocheck=1\b/.test(q)) return;
 
+  /* A tool served by its own local engine is not somebody's stale shortcut -
+     it is the tool in its fuller form. ZOHO SIGN's engine serves the page from
+     http://localhost:8430/ with no query string at all, so without this the
+     guard swallowed the one mode that has the automatic lookups in it. */
+  if (location.protocol === 'http:' &&
+      (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
+
   var HOME = 'https://skuznitsky-clearshift.github.io/vm/apps/';
 
   var hide = document.createElement('style');
