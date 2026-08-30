@@ -1,6 +1,11 @@
 <!doctype html>
 <html dir="rtl" lang="he">
 <head>
+<!--SKNOINTRO--><script>
+/* ?nointro=1 -> publish a no-op SKIntro before the real one loads, so the
+   signature plays only on the way in through ClearShift Apps. */
+if(/[?&]nointro=1/.test(location.search)){window.SKIntro={play:function(){return Promise.resolve(false)},skip:function(){},reset:function(){},off:true};}
+</script><!--/SKNOINTRO-->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
