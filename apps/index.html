@@ -149,7 +149,7 @@
 </div>
 
 <div id="hint"></div>
-<div id="stamp">v1.3 | 30.08.2026</div>
+<div id="stamp">v1.4 | 30.08.2026</div>
 <div id="sig">SK PRODUCTS</div>
 
 <script>
@@ -489,7 +489,7 @@
 })();
 
 </script>
-<!--SKGATE--><script data-tool="j1" data-ver="1.3" data-built="2026-08-30" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="j1" data-ver="1.4" data-built="2026-08-30" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1073,7 +1073,12 @@
     // built before that change carry the same stub, injected by
     // sk-intro\inject-nointro.ps1).
     var href = app.web ? app.href : encodeURI(app.href);
-    a.href = href + (href.indexOf('?') < 0 ? '?' : '&') + 'nointro=1';
+    var flags = 'nointro=1';
+    // open the launcher itself with ?nocheck=1 and every tool it opens inherits
+    // it. nocheck is the gate's own override, so this is the way to keep working
+    // while a version is dropped for everybody else - one shortcut, not five.
+    if (/[?&]nocheck=1\b/.test(location.search)) flags += '&nocheck=1';
+    a.href = href + (href.indexOf('?') < 0 ? '?' : '&') + flags;
     a.target = '_blank';
     a.rel = 'noopener';
     a.style.animationDelay = (140 + i * 70) + 'ms';
