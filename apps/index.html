@@ -103,6 +103,10 @@
         pointer-events:none}
   #hint.on{opacity:1}
 
+  #notice{position:fixed;bottom:20px;left:22px;font-size:10.5px;color:var(--brand);
+          background:#0e1a21;border:1px solid var(--brand-dim);border-radius:6px;
+          padding:5px 10px}
+  #notice[hidden]{display:none}
   #stamp{position:fixed;bottom:20px;right:22px;font-size:10.5px;
          letter-spacing:.04em;color:var(--ink-4);direction:ltr}
   #sig{position:fixed;bottom:20px;left:0;right:0;text-align:center;
@@ -181,7 +185,8 @@
 </div>
 
 <div id="hint"></div>
-<div id="stamp">v1.6 | 31.08.2026</div>
+<div id="notice" hidden>גרסה חדשה זמינה — העתיקו קובץ חדש מהתיקייה המשותפת</div>
+<div id="stamp">v1.6 | 02.09.2026</div>
 <div id="sig">SK PRODUCTS</div>
 
 <script>
@@ -521,7 +526,7 @@
 })();
 
 </script>
-<!--SKGATE--><script data-tool="j1" data-ver="1.6" data-built="2026-08-31" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="j1" data-ver="1.6" data-built="2026-09-02" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1091,12 +1096,80 @@
   function embedded(gid) { return !!document.getElementById('t-' + gid); }
 
   function toolHtml(gid) {
+    if (remote[gid]) return remote[gid];       // a newer copy fetched at startup
     var el = document.getElementById('t-' + gid);
     if (!el) return null;
     var bin = atob(el.textContent.replace(/\s+/g, ''));
     var bytes = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  // ------------------------------------------------------------- updates
+  // Checked while the signature plays, so the wait is spent on an animation
+  // nobody is waiting through anyway. Everything here fails silently: no
+  // answer, a bad answer, no internet - the copies inside this file run, which
+  // is what makes the tool work on a plane.
+  //
+  // What CAN be updated this way: the config below, including the lookup
+  // server's address, and a tool's code if the manifest names a URL for it.
+  // What CANNOT: this file itself. A page cannot write to disk, so a new shell
+  // is announced, not installed.
+  var MANIFEST = 'https://skuznitsky-clearshift.github.io/vm/apps/manifest.json';
+  var EMBEDDED = {};      // gid -> version carried inside this file
+  var SHELL    = '1.6';
+  var remote = {};                    // gid -> newer html, this session only
+  var cfg    = {};                    // whatever the manifest said
+
+  function vnum(s) {
+    var p = String(s || '').replace(/[^0-9.]/g, '').split('.');
+    return (parseInt(p[0], 10) || 0) * 1000 + (parseInt(p[1], 10) || 0);
+  }
+
+  function withTimeout(url, ms) {
+    return new Promise(function (res, rej) {
+      var done = false;
+      var t = setTimeout(function () { if (!done) { done = true; rej(new Error('timeout')); } }, ms);
+      fetch(url, { cache: 'no-store' }).then(function (r) {
+        if (done) return;
+        done = true; clearTimeout(t);
+        if (!r.ok) { rej(new Error('http ' + r.status)); return; }
+        res(r);
+      }, function (e) { if (!done) { done = true; clearTimeout(t); rej(e); } });
+    });
+  }
+
+  function checkUpdates() {
+    if (!MANIFEST || !window.fetch) return;
+    withTimeout(MANIFEST, 4000).then(function (r) { return r.json(); }).then(function (m) {
+      if (!m || typeof m !== 'object') return;
+      cfg = m;
+      if (m.shell && vnum(m.shell) > vnum(SHELL)) showNotice();
+      var tools = m.tools || {};
+      Object.keys(tools).forEach(function (gid) {
+        var t = tools[gid];
+        if (!t || !t.url) return;                                  // nothing published
+        if (vnum(t.ver) <= vnum(EMBEDDED[gid] || '0')) return;     // ours is current
+        var u = (t.url.indexOf('http') === 0) ? t.url : MANIFEST.replace(/[^/]*$/, '') + t.url;
+        withTimeout(u, 20000).then(function (rr) { return rr.text(); }).then(function (html) {
+          if (html && html.length > 1000) remote[gid] = html;
+        }, function () {});
+      });
+    }, function () {});
+  }
+
+  function showNotice() {
+    var n = document.getElementById('notice');
+    if (n) n.hidden = false;
+  }
+
+  // The lookup server's address lives in the manifest, not in this build, so
+  // turning the lookups on for everybody is one line on the server rather than
+  // a new download for each person.
+  function withProxy(html) {
+    if (!cfg.proxy || typeof cfg.proxy !== 'string' || cfg.proxy.indexOf('https://') !== 0) return html;
+    var tag = '<script>window.__CS_PROXY=' + JSON.stringify(cfg.proxy) + ';<\/script>';
+    return html.replace(/(<head[^>]*>)/i, '$1' + tag);
   }
 
   var frame  = document.getElementById('frame');
@@ -1131,7 +1204,7 @@
   function showTool(app) {
     ftitle.textContent = app.name;
     fview.removeAttribute('src');
-    fview.srcdoc = toolHtml(app.gid);
+    fview.srcdoc = withProxy(toolHtml(app.gid));
     frame.hidden = false;
     document.body.style.overflow = 'hidden';
     document.getElementById('fback').focus();
@@ -1275,6 +1348,7 @@
 
   window.addEventListener('resize', layout);
   layout();
+  checkUpdates();   /* runs while the signature plays */
 })();
 </script>
 </body>
