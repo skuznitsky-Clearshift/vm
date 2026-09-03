@@ -611,7 +611,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.39" data-built="2026-09-02" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.40" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1123,7 +1123,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.39 | 02.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.40 | 03.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -5248,12 +5248,44 @@ function gateTick() { if (gateHook) { try { gateHook(); } catch (e) { /* screen 
    its manifest, which is how it reaches everyone without a new download; the
    build-time value is the fallback for a tool opened on its own. */
 const PROXY  = (typeof window.__CS_PROXY === 'string' && window.__CS_PROXY) || '';
-const ENGINE = (typeof window.__ENGINE === 'string') ? window.__ENGINE
-             : (PROXY ? 'proxy' : null);
+
+/* A THIRD route, and in practice the one that matters: the local engine reached
+   over http from a page it did NOT serve.
+
+   The launcher hands out one HTML file, so the tool normally runs from file://
+   with no __ENGINE injected — and with proxy.txt empty there was no route at
+   all. That is why the osek lookup went dead: not a bug in the osek code, just
+   nothing left to call. But the engine ships in the same folder. If it is
+   running we can call it directly whatever the page's own origin is, because it
+   now sends Access-Control-Allow-Origin. That restores the whole flow —
+   CAPTCHA, details and the evidence PNG — for anyone who starts
+   start-zoho.cmd, with no rebuild and no proxy address. */
+const ENGINE_URL = 'http://localhost:8430';
+let LOCAL = null;                 /* set once a probe succeeds */
+async function probeLocalEngine() {
+  if (window.__ENGINE) return null;          /* the engine already serves us */
+  try {
+    const r = await fetch(ENGINE_URL + '/api/ping');
+    if (r.ok) {
+      LOCAL  = ENGINE_URL;
+      /* ENGINE is what every screen reads to decide whether to offer a lookup
+         at all, so opening the route is not enough - it has to be announced. */
+      ENGINE = ENGINE || 'local';
+      return LOCAL;
+    }
+  } catch (e) { /* not running — the proxy or manual entry takes over */ }
+  return null;
+}
+let ENGINE = (typeof window.__ENGINE === 'string') ? window.__ENGINE
+           : (PROXY ? 'proxy' : null);
 
 async function api(path, opts) {
   let url = path, o = opts || {};
-  if (!window.__ENGINE && PROXY) {
+  /* the local engine wins whenever it answered: it is the only route that can
+     render the evidence PNG */
+  if (!window.__ENGINE && LOCAL) {
+    url = LOCAL + path;
+  } else if (!window.__ENGINE && PROXY) {
     const q  = path.indexOf('?');
     const fn = (q < 0 ? path : path.slice(0, q)).replace('/api/', '');
     url = PROXY + '?fn=' + fn + (q < 0 ? '' : '&' + path.slice(q + 1));
@@ -5268,6 +5300,15 @@ async function api(path, opts) {
   const j = await r.json().catch(() => ({ error: 'תשובה לא תקינה מהמנוע' }));
   if (j && j.error) throw new Error(j.error);
   return j;
+}
+
+/* Same routing, for the places that need the address itself rather than a
+   parsed answer: the evidence PNG is fetched as bytes and also offered as a
+   plain link. A bare '/api/file' resolves against the page, which from file://
+   is a dead path - it has to carry the engine's own origin. */
+function apiUrl(path) {
+  if (!window.__ENGINE && LOCAL) return LOCAL + path;
+  return path;
 }
 
 /* ---------------------- תרגום אוטומטי לשדות ה-CRS ----------------------
@@ -5614,10 +5655,25 @@ function osekLookupPanel() {
         } })));
 
   if (!ENGINE) {
+    /* ההודעה הזאת היתה קודם סוף פסוק, וזה היה מטעה: המשיכה כן עובדת — היא
+       רק צריכה את המנוע המקומי, שנמצא באותה תיקייה שממנה ירד הכלי. אין סיבה
+       לשלוח מכאן להקלדה בלי לומר את זה, ולכן כאן יש גם הוראה וגם כפתור
+       שמנסה להתחבר שוב בלי לרענן את הדף ובלי לאבד מה שכבר הוקלד. */
+    const again = el('button', { class: 'btn-ghost', onclick: async () => {
+      again.disabled = true; again.textContent = 'מחפש מנוע…';
+      const found = await probeLocalEngine();
+      if (found) { toast('המנוע נמצא — המשיכה זמינה'); render(); }
+      else { again.disabled = false; again.textContent = 'נסה להתחבר למנוע';
+             toast('המנוע לא רץ — הפעילו start-zoho.cmd'); }
+    } }, 'נסה להתחבר למנוע');
     p.append(el('div', { class: 'note i' },
-      'המשיכה האוטומטית של פרטי העוסק מרשות המסים לא זמינה כאן — ',
-      el('b', {}, 'הקלידו אותם למטה'),
-      '. זה משנה רק את דרך ההזנה: הכלי ממלא את המסמכים במלואם, בדיוק אותו דבר.'));
+      'המשיכה האוטומטית של פרטי העוסק מרשות המסים דורשת את המנוע המקומי, ',
+      'והוא לא רץ כרגע. ', el('b', {}, 'הפעילו start-zoho.cmd'),
+      ' מהתיקייה המשותפת של הכלים, ואז לחצו כאן:'),
+      el('div', { style: 'margin:8px 0' }, again),
+      el('div', { class: 'lbl' },
+        'אפשר גם להמשיך בלי זה — ', el('b', {}, 'הקלידו את הפרטים למטה'),
+        '. זה משנה רק את דרך ההזנה: הכלי ממלא את המסמכים במלואם, בדיוק אותו דבר.'));
     return p;
   }
   const num = String(S.company.regNumber || '').replace(/\D/g, '');
@@ -5798,7 +5854,7 @@ function osekResult(r) {
     S.osekShot = r.shotToken;
     w.append(el('div', { style: 'margin-top:12px' },
       el('a', { class: 'btn-ghost', style: 'display:inline-block;text-decoration:none',
-        href: '/api/file?token=' + encodeURIComponent(r.shotToken) + '&dl=1' },
+        href: apiUrl('/api/file?token=' + encodeURIComponent(r.shotToken) + '&dl=1') },
         'להורדת קובץ תיעוד (כמו תעודת עוסק) ↓'),
       el('div', { class: 'lbl', style: 'margin-top:5px' },
         'הקובץ הזה ירד גם יחד עם שלושת המסמכים, בשם ' +
@@ -5990,9 +6046,9 @@ function amutaRoleProblems() {
   AMUTA_SLOTS.forEach(s => {
     const c = R[s.k];
     if (!String(c.name || '').trim()) {
-      /* נציג אינו חובה: בלעדיו הצהרת הנהנים נחתמת על ידי חותם 1. שאר
-         התפקידים כן נדרשים למסמכים. */
-      if (s.k !== 'rep') out.push(s.t + ' — לא נבחר');
+      /* בעמותה גם הנציג נדרש: הוא זה שחותם על הצהרת הנהנים ושמו נכתב בראשה,
+         ובלעדיו המסמך יוצא בשם חותם 1 — מה שקרה בשקט עד כה. */
+      out.push(s.t + ' — לא נבחר');
       return;
     }
     /* ת"ז שהופקדה על הלקוח אינה חסרה — היא תמולא ב-Zoho */
@@ -6018,19 +6074,24 @@ function amutaSyncRoles() {
         role: 'מורשה חתימה', roleEn: 'Authorized Signatory' });
     });
   }
-  /* הנציג נבחר כאן, בטבלת התפקידים, ולא במסך החותמים */
+  /* הנציג נבחר כאן, בטבלת התפקידים, ולא במסך החותמים.
+     הסלוט מזין נציג אחד. נציגים נוספים נערכים בטבלת הנציגים כמו בחברה, והם
+     לא בטבלת התפקידים — לכן הסנכרון מזהה את שורת הסלוט לפי דגל ולא לפי
+     מקומה. לפי מקום זה מחק נציג שהמשתמש הוסיף בעצמו. */
   const rp = R.rep;
+  const extra = (S.reps || []).filter(r => !r.fromSlot);
+  const keep  = (S.reps || []).find(r => r.fromSlot) || {};
   if (rp && String(rp.name || '').trim()) {
-    const keep = S.reps[0] || {};
     S.reps = [Object.assign(blankRep(), keep, {
       name: rp.name, idNumber: rp.idNumber || '', idByClient: !!rp.idByClient,
       /* נספח א' צריך גם נייד, דוא"ל והרשאות. הם נערכים בפאנל "הנציג בנספח א'"
          ונשמרים על אותה שורת תפקיד, כדי שלא ייעלמו בין רינדורים. */
       mobile: rp.mobile || keep.mobile || '', email: rp.email || keep.email || '',
       perms: rp.perms || keep.perms || 'E',
-      address: rp.address || keep.address || '' })];
+      address: rp.address || keep.address || '',
+      fromSlot: true })].concat(extra);
   } else {
-    S.reps = [];
+    S.reps = extra;
   }
   /* הנהנים הם היו"ר והמנכ"ל. אותו אדם בשני התפקידים נכנס פעם אחת בלבד. */
   const benef = [];
@@ -6690,12 +6751,16 @@ function screenSigners() {
     for (let i = 0; i < S.signerCount; i++) p1.append(signerBlock(i));
     box.append(p1);
   }
-  if (!fromSlots) {
-
-  /* --- representatives --- */
+  /* --- representatives ---
+     מוצג בכל הסוגים: נספח א' של החלטת הארגון מקבל עד שלושה נציגים, והשדות
+     שהוא צריך (נייד, דוא"ל, הרשאות, מדינה) לא קיימים בטבלת התפקידים. בעמותה
+     נציג 1 מגיע מהסלוט ואינו נמחק כאן; 2 ו-3 נוספים כאן. */
+  {
   const p2 = el('div', { class: 'panel' },
-    el('h2', {}, 'להוסיף נציג?'),
-    el('p', { class: 'sub' }, 'נציגים נרשמים בנספח א\' של החלטת ארגון. יש מקום לשלושה.'));
+    el('h2', {}, fromSlots ? 'נציגים — נספח א\'' : 'להוסיף נציג?'),
+    el('p', { class: 'sub' }, fromSlots
+      ? 'נציג 1 נקבע בטבלת התפקידים. כאן משלימים את פרטיו לנספח א\', ואפשר להוסיף עד שלושה. רק נציג 1 מופיע בהצהרת הנהנים.'
+      : 'נציגים נרשמים בנספח א\' של החלטת ארגון. יש מקום לשלושה. רק נציג 1 מופיע בהצהרת הנהנים.'));
   if (S.reps.length) {
     p2.append(el('div', { class: 'tscroll', style: 'margin-top:14px' }, el('table', { class: 'g' },
       el('tr', {}, ['#', 'שם מלא', 'ת"ז / דרכון', 'נייד', 'דוא"ל', 'כתובת', 'הרשאות', ''].map(h => el('th', {}, h))),
@@ -6709,17 +6774,27 @@ function screenSigners() {
         el('td', { class: 'mono' }, r.perms),
         el('td', {}, el('div', { style: 'display:flex;gap:6px' },
           el('button', { class: 'btn-sm', onclick: () => repDialog(i) }, 'ערוך'),
-          el('button', { class: 'btn-sm btn-danger',
-            onclick: () => { S.reps.splice(i, 1); render(); } }, 'הסר'))))))));
+          /* בעמותה נציג 1 בא מטבלת התפקידים — מוחקים אותו שם, לא כאן */
+          r.fromSlot ? el('span', { class: 'chip neutral' }, 'מטבלת התפקידים')
+            : el('button', { class: 'btn-sm btn-danger',
+                onclick: () => { S.reps.splice(i, 1); render(); } }, 'הסר'))))))));
     if (S.reps.length > 3) p2.append(el('div', { class: 'note w' },
       'בנספח א\' יש שלוש עמודות; נציגים מעבר לשלושה לא ייכנסו למסמך.'));
+  } else if (fromSlots) {
+    p2.append(el('div', { class: 'note w' },
+      'לא נבחר נציג בטבלת התפקידים. חזור אחורה ובחר — בעמותה הוא חותם על הצהרת הנהנים.'));
   } else {
-    p2.append(el('div', { class: 'note i' }, 'לא נוספו נציגים — טבלת נספח א\' תישאר ריקה.'));
+    /* בחברה בלי נציג — הטבלה לא נשארת ריקה: נכנסים אליה פרטי החותם */
+    p2.append(el('div', { class: 'note i' },
+      'לא נוספו נציגים — בנספח א\' יופיעו פרטי ',
+      el('b', {}, 'החותם'), ': ', (S.signers[0] || {}).name || '(טרם נבחר)', '.'));
   }
-  p2.append(el('div', { class: 'bar', style: 'border:none;padding-top:14px;margin-top:6px' },
-    el('button', { class: 'btn-sm', onclick: () => repDialog(-1) }, '＋ הוסף נציג')));
+  if (S.reps.length < 3)
+    p2.append(el('div', { class: 'bar', style: 'border:none;padding-top:14px;margin-top:6px' },
+      el('button', { class: 'btn-sm', onclick: () => repDialog(-1) },
+        S.reps.length ? '＋ נציג נוסף' : '＋ הוסף נציג')));
   box.append(p2);
-  }   /* end !fromSlots */
+  }
 
   /* --- who signs the declaration ---
      בעמותה זה קבוע: הנציג חותם על הצהרת הנהנים. אין מה לבחור. */
@@ -6888,7 +6963,8 @@ function declarant() {
     return { name: r.name, idNumber: r.idNumber, recipient: 3, who: 'נציג' };
   }
   if (S.declSigner === 'rep' && reps.length) {
-    const r = reps[Math.min(S.declRepIndex, reps.length - 1)];
+    /* נציג 1 בלבד — ראה declSignerPanel */
+    const r = reps[0];
     return { name: r.name, idNumber: r.idNumber, recipient: 3, who: 'נציג' };
   }
   const s = S.signers[0] || {};
@@ -6940,16 +7016,14 @@ function declSignerPanel() {
       el('span', {}, 'החותם חותם על הצהרת הנהנים במקומו')));
   p.append(rows);
 
-  /* more than one representative — say which of them */
-  if (S.declSigner === 'rep' && reps.length > 1) {
-    const sel = el('select', { style: 'max-width:320px' });
-    reps.forEach((r, k) => sel.append(el('option', {
-      value: String(k), selected: Math.min(S.declRepIndex, reps.length - 1) === k
-    }, `נציג ${k + 1} — ${r.name}`)));
-    sel.addEventListener('change', () => { S.declRepIndex = +sel.value; render(); });
-    p.append(el('label', { class: 'f', style: 'margin-top:14px;max-width:320px' },
-      el('span', { class: 'lbl' }, 'איזה נציג'), sel));
-  }
+  /* יותר מנציג אחד — רק נציג 1 מופיע בהצהרת הנהנים. אין כאן בחירה: לטופס
+     שורת חתימה אחת, והכלל שנקבע הוא שנציג 1 הוא המצהיר. השאר נכנסים
+     לנספח א' של החלטת הארגון בלבד. */
+  if (S.declSigner === 'rep' && reps.length > 1)
+    p.append(el('div', { class: 'note i', style: 'margin-top:12px' },
+      'יש ' + reps.length + ' נציגים. בהצהרת הנהנים יופיע ',
+      el('b', {}, 'נציג 1 — ' + reps[0].name),
+      '. כולם מופיעים בנספח א\' של החלטת הארגון.'));
 
   const d = declarant();
   p.append(el('div', { class: 'note k' },
@@ -7093,7 +7167,7 @@ async function doDownload(btn, status) {
        לשכוח. אם המשיכה נכשלת, שלושת המסמכים יורדים כרגיל. */
     if (S.kind === 'osek' && S.osekShot && ENGINE) {
       try {
-        const resp = await fetch('/api/file?token=' + encodeURIComponent(S.osekShot));
+        const resp = await fetch(apiUrl('/api/file?token=' + encodeURIComponent(S.osekShot)));
         if (resp.ok) {
           const buf = new Uint8Array(await resp.arrayBuffer());
           files.push({ key: 'osekshot', title: 'תיעוד עוסק',
@@ -7160,6 +7234,22 @@ function sendoff() {
   }, 3000);
 }
 
+/* נספח א' של החלטת הארגון — עד שלושה נציגים.
+   בחברה בלי נציג הטבלה לא נשארת ריקה: נכנסים אליה פרטי החותם, כי הוא מי
+   שמוסמך לפעול בחשבון בפועל. זו הוספה לתיק בלבד — declarant() קורא את S.reps
+   ולא את זה, ולכן מי שנכתב בראש הצהרת הנהנים לא משתנה מכאן.
+   בעמותה אין נפילה כזו: שם הנציג הוא חובה ונבחר בטבלת התפקידים. */
+function repsForCase() {
+  const real = (S.reps || []).filter(r => String(r.name || '').trim());
+  if (real.length) return real;
+  if (S.kind === 'amuta') return [];
+  const sg = S.signers[0] || {};
+  if (!String(sg.name || '').trim()) return [];
+  return [Object.assign(blankRep(), {
+    name: sg.name, idNumber: sg.idNumber || '', country: 'ישראל',
+    address: addrLine(S.company.address), perms: 'E', fromSigner: true })];
+}
+
 function caseObject() {
   /* בזרימת העמותה אין מסך אישור פרטי חברה, ולכן השדות באנגלית לא התמלאו
      מעולם וה-CRS יצא בלי שם וכתובת באנגלית. ממלא ריקים בלבד. */
@@ -7188,12 +7278,16 @@ function caseObject() {
     authOption: S.authOption, repsOption: S.repsOption,
     repsThreshold: S.repsThreshold, proofOption: S.proofOption,
     controllers: S.controllers.map(ct => Object.assign({}, ct, { dob: normalizeDob(ct.dob) })),
-    reps: S.reps, crs: S.crs
+    reps: repsForCase(), crs: S.crs
   };
 }
 
 restoreTheme();
 render();
+/* The probe cannot be awaited before the first paint - the tool has to appear
+   instantly whether an engine is there or not. So it runs alongside, and only
+   if it finds one does the screen redraw with the lookups on it. */
+probeLocalEngine().then(function (found) { if (found) render(); });
 </script>
 </body>
 </html>
