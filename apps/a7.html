@@ -213,18 +213,53 @@ fieldset{border:1px solid var(--rule);border-radius:9px;padding:14px 16px;margin
   background:var(--panel-2)}
 legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;padding:0 6px}
 
-/* ---- ownership tree ---- */
-.tree{margin-top:12px;border:1px solid var(--rule);border-radius:8px;
-  background:var(--panel-2);padding:12px 14px;overflow-x:auto}
-.tnode{display:flex;align-items:baseline;gap:8px;padding:5px 0;
-  border-inline-start:2px solid var(--rule-strong);padding-inline-start:10px;
-  margin-block:1px;white-space:nowrap}
-.tnode.tleaf{border-inline-start-color:var(--ok)}
-.tnode.tmiss{border-inline-start-color:var(--block)}
-.tname{font-weight:620;font-size:13.5px}
-.tpct{font-size:13px;font-weight:600;color:var(--accent-ink);
-  font-variant-numeric:tabular-nums;font-family:var(--mono)}
-.tkind{font-size:11.5px;color:var(--ink-3)}
+/* ---- ownership tree: the diagram ----
+   Nested lists with drawn elbows rather than a flat indent, because the whole
+   point is to SEE the chain: who sits under whom, and what each edge is worth.
+   Elbows are ::before/::after on the li, which needs no layout arithmetic and
+   follows the writing direction on its own via logical properties - an SVG
+   would have needed both a layout pass and its own RTL handling.
+
+   Colour carries the one distinction that matters when reading it fast:
+     company  accent (blue)    a legal entity - the chain continues through it
+     person   ok (green)       a human - the chain ENDS here, and this is who
+                               the הצהרת נהנים is about
+     missing  block (red)      a company whose נסח we still need
+     stop     neutral          a public company - deliberately not opened
+   The palette is the tool's own, so it inverts correctly in dark mode. */
+.otree{margin-top:12px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--panel-2);padding:14px 10px 10px;overflow-x:auto}
+.otree ul{list-style:none;margin:0;padding-inline-start:26px}
+.otree>ul{padding-inline-start:4px}
+.otree li{position:relative;padding-inline-start:20px;padding-block:4px}
+/* the vertical run down to the last child, and the elbow into each node */
+.otree ul ul>li::before{content:'';position:absolute;inset-inline-start:0;top:0;
+  bottom:0;border-inline-start:1.5px solid var(--rule-strong)}
+.otree ul ul>li:last-child::before{bottom:calc(100% - 18px)}
+.otree ul ul>li::after{content:'';position:absolute;inset-inline-start:0;top:18px;
+  width:16px;border-top:1.5px solid var(--rule-strong)}
+.onode{display:inline-flex;align-items:baseline;gap:9px;padding:5px 11px;
+  border:1px solid;border-radius:8px;background:var(--panel);white-space:nowrap;
+  max-width:100%}
+.onode .nm{font-weight:640;font-size:13.5px}
+.onode .sub{font-size:11.5px;opacity:.85;font-family:var(--mono)}
+.onode.co    {border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.onode.person{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.onode.miss  {border-color:var(--block);background:var(--block-soft);color:var(--block)}
+.onode.stop  {border-color:var(--rule-strong);background:var(--panel-3);color:var(--ink-2)}
+/* what the edge into the node is worth. The direct share is what the נסח says;
+   the effective one is the product down the chain, and they differ everywhere
+   below the first level - showing only one of them is what makes these trees
+   unreadable. */
+.oedge{display:inline-flex;align-items:baseline;gap:6px;margin-inline-end:8px;
+  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-2)}
+.oedge .eff{color:var(--accent-ink);font-weight:700}
+.oedge .of{font-size:10.5px;color:var(--ink-3);font-weight:500}
+.oubo{margin-inline-start:8px}
+.oleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;
+  border-top:1px solid var(--rule)}
+.oleg span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-3)}
+.oleg i{width:11px;height:11px;border-radius:3px;border:1px solid;display:inline-block}
 
 /* ---- footer action bar ---- */
 .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px;
@@ -611,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.42" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.43" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1123,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.42 | 03.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.43 | 03.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -4233,6 +4268,12 @@ function fixPeople(text, parsed) {
 
 const CHAIN_CFG = { controlThreshold: 25, ownerThreshold: 20 };
 
+/* One decimal, and never "30.60000000000001". Lives here rather than in the UI
+   because both the tree drawing and the effective-holdings table have to print
+   the SAME number for the same edge - two roundings would show a chain whose
+   own arithmetic looks wrong. */
+function round1(x) { return Math.round((Number(x) || 0) * 10) / 10; }
+
 function treeInit(company, people) {
   const tree = { root: '', nodes: {} };
   const reg = normId(company.regNumber) || company.regNumber;
@@ -4260,12 +4301,26 @@ function treeAddNode(tree, parsed) {
   return reg;
 }
 
+/* Is this corporate holder one we deliberately stop at? A public company has no
+   controlling shareholder to reach — its holdings are dispersed and change
+   daily — so climbing above it is both impossible and pointless. Matched by
+   registration number, falling back to the name, because the flag is set in the
+   UI while the tree is rebuilt from scratch on every נסח that arrives. */
+function treeIsPublic(holder, publicIds) {
+  const ids = publicIds || [];
+  if (!ids.length) return false;
+  const id = normId(holder.id);
+  const nm = String(holder.name || '').trim();
+  return ids.some(k => (id && normId(k) === id) || (nm && String(k).trim() === nm));
+}
+
 /* Depth-first: multiplies percentages, sums a person reached by several paths,
    and returns separately the corporate holders whose נסח is still missing.
    `seen` guards against a cycle in cross-holdings. */
-function treeEffective(tree) {
+function treeEffective(tree, publicIds) {
   const t = tree || { root: '', nodes: {} };
-  const people = new Map(), missing = new Map(), cycles = new Map();
+  const pub = publicIds || t.publicIds || [];
+  const people = new Map(), missing = new Map(), cycles = new Map(), stops = new Map();
   let unknownPct = false;
 
   const walk = (reg, factor, path, seen) => {
@@ -4277,7 +4332,16 @@ function treeEffective(tree) {
       const eff = factor * share;
       const hid = normId(h.id);
       if (h.isEntity) {
-        if (t.nodes[hid] && seen.includes(hid)) {
+        if (treeIsPublic(h, pub)) {
+          /* A declared stop. NOT "missing": asking the customer for the נסח of
+             a public company would be asking for something that cannot answer
+             the question, and leaving it in the missing list is what made the
+             chain look permanently unfinished. */
+          const k = hid || h.name;
+          const s = stops.get(k) || { name: h.name, id: hid, pct: 0, via: path.slice() };
+          s.pct += eff * 100;
+          stops.set(k, s);
+        } else if (t.nodes[hid] && seen.includes(hid)) {
           /* A holding that points back up its own chain. The percentages are
              left exactly as the onboarding console computes them, so the two
              tools can never disagree on a number — but the holder is recorded
@@ -4306,11 +4370,48 @@ function treeEffective(tree) {
   };
   if (t.root) walk(t.root, 1, [], [t.root]);
 
-  const round = x => Math.round(x * 10) / 10;
+  const round = round1;
+  const miss = [...missing.values()].map(m => ({ ...m, pct: round(m.pct) }))
+    .sort((a, b) => b.pct - a.pct);
+
+  const owners = [...people.values()].map(p => ({ ...p, pct: round(p.pct) }))
+    .sort((a, b) => b.pct - a.pct);
+
+  /* THE pruning rule, and the reason a full structure is not needed.
+     Nobody inside a company held at E% through the chain can end up with more
+     than E% OF THE ROOT THROUGH THAT COMPANY - multiplying by any share only
+     shrinks it. So a company well under the control threshold is not worth a
+     נסח.
+
+     But "E < threshold" alone is NOT safe, and getting this wrong would mean
+     silently omitting a בעל שליטה from a KYC document. A person can be reached
+     by several routes, and the routes ADD UP: someone holding 20% directly and
+     all of a company that holds another 10% is at 30%, over the line, while
+     each individual route is under it. Pruning that 10% company would hide him.
+
+     So three answers, not two:
+       needed  E >= threshold. Must be opened; nothing else can settle it.
+       maybe   E < threshold, but the unopened holdings TOGETHER with the
+               largest identified holder who is still under the line could
+               cross it. Not blocking - it only matters if the same person
+               turns up in two places - but never silently dropped.
+       pruned  even all of it, handed to the person closest to the line, stays
+               under. Provably cannot change the answer. */
+  const T = CHAIN_CFG.controlThreshold;
+  const unopenedTotal = miss.reduce((s, m) => s + m.pct, 0);
+  const closest = owners.filter(o => o.pct < T).reduce((mx, o) => Math.max(mx, o.pct), 0);
+  const couldCombine = round(unopenedTotal + closest) >= T;
+
   return {
-    owners: [...people.values()].map(p => ({ ...p, pct: round(p.pct) }))
-      .sort((a, b) => b.pct - a.pct),
-    missing: [...missing.values()].map(m => ({ ...m, pct: round(m.pct) }))
+    owners,
+    missing: miss,
+    needed: miss.filter(m => m.pct >= T),
+    maybe:  couldCombine ? miss.filter(m => m.pct < T) : [],
+    pruned: couldCombine ? [] : miss.filter(m => m.pct < T),
+    /* shown so the "maybe" wording can say WHY, with the two numbers that
+       produced it rather than a vague warning */
+    combine: { unopenedTotal: round(unopenedTotal), closest: round(closest), couldCombine },
+    stops: [...stops.values()].map(m => ({ ...m, pct: round(m.pct) }))
       .sort((a, b) => b.pct - a.pct),
     cycles: [...cycles.values()].map(m => ({ ...m, pct: round(m.pct) }))
       .sort((a, b) => b.pct - a.pct),
@@ -4319,12 +4420,30 @@ function treeEffective(tree) {
   };
 }
 
+function treeChainDone(tree, publicIds) {
+  const eff = treeEffective(tree, publicIds);
+  return {
+    /* `done` follows `needed` only. A "maybe" does not block: it can change the
+       answer solely if the same person appears in two places, and holding up
+       the documents for that possibility - on every chain that has any small
+       corporate holder at all - would put the tool back to demanding the full
+       structure, which is what it is meant to avoid. It IS surfaced. */
+    done: eff.needed.length === 0,
+    waitingFor: eff.needed,
+    worthChecking: eff.maybe,
+    skipped: eff.pruned,
+    stops: eff.stops,
+    combine: eff.combine,
+    uncertain: eff.unknownPct || eff.cycles.length > 0,
+    eff
+  };
+}
 /* The people the הצהרת נהנים should list. Normally those at or above the
    control threshold. When the נסח gave no share counts every effective figure
    is 0, and silently returning nobody would be worse than returning the
    individual holders flagged as unverified. */
-function treeControllers(tree) {
-  const eff = treeEffective(tree);
+function treeControllers(tree, publicIds) {
+  const eff = treeEffective(tree, publicIds);
   const over = eff.owners.filter(o => o.pct >= CHAIN_CFG.controlThreshold);
   if (over.length) return { list: over, uncertain: false, eff };
   if (eff.unknownPct && eff.owners.length)
@@ -4332,15 +4451,34 @@ function treeControllers(tree) {
   return { list: [], uncertain: false, eff };
 }
 
-function treeRequestText(companyName, missing) {
+/* The email asking for the next round of נסחים. It asks ONLY for the companies
+   that can still change the answer — one round at a time, because each נסח may
+   reveal the next layer, and because a list padded with companies we do not
+   need makes the whole request look like a fishing expedition and slows the
+   reply down. The stopping rule is stated in the mail so the customer knows it
+   ends. */
+function treeRequestText(companyName, missing, opts) {
+  const o = opts || {};
+  const list = (missing || []).slice();
   let s = `שלום,\n\nבנסח של ${companyName || 'החברה'} מופיעים בעלי מניות שהם חברות, `;
-  s += 'ולכן כדי להשלים את הזיהוי אנחנו נדרשים לנסח חברה מעודכן של כל אחת מהן:\n\n';
-  (missing || []).forEach(m => {
+  s += 'ולכן כדי להשלים את זיהוי בעלי השליטה אנחנו נדרשים לנסח חברה מעודכן ';
+  s += (list.length === 1 ? 'של:\n\n' : 'של כל אחת מאלה:\n\n');
+  list.forEach(m => {
     s += `  • ${m.name}` + (m.id ? ` (ח.פ. ${m.id})` : '') +
          ` — מחזיקה ${m.pct}% בשרשרת\n`;
   });
-  s += '\nאם גם בהן יש בעלי מניות שהם חברות, נצטרך גם את הנסחים שלהן, ' +
-       'עד שנגיע לבעלי המניות שהם אנשים.\n\nתודה,\nקלירשיפט';
+  s += `\nלא נדרש המבנה המלא — רק עד בעלי המניות שמחזיקים ` +
+       `${CHAIN_CFG.controlThreshold}% ומעלה בשרשרת, ולכן:\n`;
+  s += `  • חברה שמחזיקה פחות מ-${CHAIN_CFG.controlThreshold}% בשרשרת — לא צריך את הנסח שלה.\n`;
+  s += '  • חברה ציבורית — עוצרים שם, אין צורך בבעלי המניות שלה.\n';
+  if ((o.skipped || []).length) {
+    s += '\nלמשל, את אלה כבר בדקנו שאין בהן צורך:\n';
+    o.skipped.forEach(m => {
+      s += `  • ${m.name}` + (m.id ? ` (ח.פ. ${m.id})` : '') + ` — ${m.pct}% בשרשרת\n`;
+    });
+  }
+  s += '\nאם באחת מהן יש בעלי מניות שהם חברות שעוברות את הרף, נצטרך גם את ' +
+       'הנסחים שלהן — עד שנגיע לאנשים.\n\nתודה,\nקלירשיפט';
   return s;
 }
 
@@ -4704,6 +4842,7 @@ function freshState(kind) {
     enNameFromNasach: false,
     people: [],
     tree: { root: '', nodes: {} },
+    publicIds: [],          /* companies marked ציבורית — the chain stops there */
     parentsAdded: [],       /* names of parent נסחים fed in, for display */
     chainAck: false,        /* explicit acknowledgement when the chain is open */
     signerCount: 1,
@@ -4872,6 +5011,7 @@ function applyNasach(text, fileName) {
   /* the ownership chain: this נסח is the root, parent נסחים get added as nodes */
   S.tree = treeInit(S.company, S.people);
   S.parentsAdded = [];
+  S.publicIds = [];
   S.chainAck = false;
   S.controllers = [];
   mergeControllersFromTree();
@@ -6369,47 +6509,136 @@ function addFromNasach() {
    the same threshold and the same arithmetic as the onboarding console. */
 function chainSection() {
   const hasEntityOwner = S.people.some(p => p.isEntity && p.roles.includes('owner'));
-  const eff = treeEffective(S.tree);
+  const st = treeChainDone(S.tree, S.publicIds);
+  const eff = st.eff;
   if (!hasEntityOwner && eff.depth <= 1) return null;
 
+  const T  = CHAIN_CFG.controlThreshold;
   const box = el('div', {});
   box.append(sechd('עץ בעלות — שרשור חברות'));
   box.append(el('div', { class: 'note i' },
     el('b', {}, 'יש בעלי מניות שהם חברות. '),
-    `בעל שליטה נקבע לפי אחזקה אפקטיבית של ${CHAIN_CFG.controlThreshold}% ומעלה — ` +
-    'מכפלת האחוזים לאורך השרשרת. צרף את נסחי חברות האם כדי שהחישוב יושלם.'));
+    `בעל שליטה נקבע לפי אחזקה אפקטיבית של ${T}% ומעלה — מכפלת האחוזים לאורך ` +
+    'השרשרת. ',
+    el('b', {}, 'לא צריך את המבנה המלא: '),
+    `מספיק להגיע עד המחזיקים שעוברים את ${T}%. חברה שמחזיקה פחות מזה בשרשרת ` +
+    'לא יכולה להסתיר בעל שליטה — האחזקה שלה היא התקרה של כל מי שמתחתיה — ' +
+    'ולכן לא נבקש את הנסח שלה. חברה ציבורית: עוצרים שם.'));
 
-  /* the tree itself */
-  const tw = el('div', { class: 'tree' });
-  const draw = (reg, depth, pctIn, seen) => {
-    const n = (S.tree.nodes || {})[reg];
-    if (!n) return;
-    tw.append(el('div', { class: 'tnode', style: `margin-inline-start:${depth * 18}px` },
-      el('span', { class: 'tname' }, n.name || reg),
-      el('span', { class: 'tkind' }, 'ח.פ. ' + reg),
-      pctIn == null ? null : el('span', { class: 'tpct' }, pctIn + '%')));
-    (n.holders || []).forEach(h => {
-      const hid = normId(h.id);
-      const pct = h.pct == null ? null : h.pct;
-      if (h.isEntity && S.tree.nodes[hid] && !seen.includes(hid)) {
-        draw(hid, depth + 1, pct, seen.concat(hid));
-      } else {
-        const miss = h.isEntity && !S.tree.nodes[hid];
-        tw.append(el('div', {
-          class: 'tnode ' + (miss ? 'tmiss' : 'tleaf'),
-          style: `margin-inline-start:${(depth + 1) * 18}px`
-        },
-          el('span', { class: 'tname' }, h.name),
-          el('span', { class: 'tkind' }, miss ? 'חברה — חסר נסח'
-            : (h.isEntity ? 'חברה' : (hid ? 'ת"ז ' + hid : 'אדם'))),
-          pct == null ? el('span', { class: 'tkind' }, 'אחוז לא זוהה')
-                      : el('span', { class: 'tpct' }, pct + '%')));
-      }
-    });
+  /* ---------------- the diagram ----------------
+     Nested lists so the elbows draw themselves. Each edge carries two numbers:
+     the direct share out of the נסח, and the effective share after multiplying
+     down the chain. Below the first level those differ, and showing only one of
+     them is what makes an ownership tree impossible to check. */
+  const tw = el('div', { class: 'otree' });
+
+  const pctBadge = (direct, effective, depth) => {
+    if (direct == null) return el('span', { class: 'oedge' },
+      el('span', { class: 'of' }, 'אחוז לא זוהה'));
+    const parts = [el('span', { class: 'eff' }, round1(effective) + '%')];
+    /* at the first level the two are the same number - printing it twice reads
+       like a mistake */
+    if (depth > 0) parts.push(el('span', { class: 'of' },
+      '(' + round1(direct) + '% מ' + (depth === 1 ? '-האם' : '-המחזיקה') + ')'));
+    return el('span', { class: 'oedge' }, parts);
   };
-  if (S.tree.root) draw(S.tree.root, 0, null, [S.tree.root]);
-  box.append(tw);
 
+  const isPub = h => treeIsPublic(h, S.publicIds);
+
+  const nodeChip = (cls, name, sub) =>
+    el('span', { class: 'onode ' + cls },
+      el('span', { class: 'nm' }, name || '—'),
+      sub ? el('span', { class: 'sub' }, sub) : null);
+
+  /* el() drops nulls; DOM append() turns them into the literal text "null", which
+     is exactly what showed up beside every holder who was not a בעל שליטה. Every
+     append in this diagram goes through here. */
+  const put = (parent, ...kids) => {
+    kids.filter(k => k != null).forEach(k => parent.append(k));
+    return parent;
+  };
+
+  const holderLi = (h, depth, factor) => {
+    const hid   = normId(h.id);
+    const share = (h.pct == null ? 0 : h.pct) / 100;
+    const effPc = factor * share * 100;
+    const li    = el('li', {});
+    const known = h.isEntity && S.tree.nodes[hid];
+
+    if (h.isEntity && isPub(h)) {
+      put(li, pctBadge(h.pct, effPc, depth),
+        nodeChip('stop', h.name, hid ? 'ח.פ. ' + hid : null),
+        el('span', { class: 'chip neutral', style: 'margin-inline-start:8px' },
+          'ציבורית — עוצרים כאן'),
+        pubToggle(h, true));
+      return li;
+    }
+    if (known) {
+      put(li, pctBadge(h.pct, effPc, depth));
+      put(li, companyNode(hid, depth, factor * share));
+      return li;
+    }
+    if (h.isEntity) {
+      /* a company we have not opened. Whether we NEED to is the pruning rule,
+         and saying so on the node itself is the difference between a red flag
+         that means "go get this" and one that means nothing. */
+      const need = effPc >= T;
+      put(li, pctBadge(h.pct, effPc, depth),
+        nodeChip(need ? 'miss' : 'stop', h.name, hid ? 'ח.פ. ' + hid : null),
+        el('span', { class: 'chip ' + (need ? 'block' : 'neutral'),
+          style: 'margin-inline-start:8px' },
+          need ? 'חסר נסח' : `מתחת ל-${T}% — לא נדרש`),
+        pubToggle(h, false));
+      return li;
+    }
+    const isUbo = effPc >= T;
+    put(li, pctBadge(h.pct, effPc, depth),
+      nodeChip('person', h.name, hid ? 'ת"ז ' + hid : null),
+      isUbo ? el('span', { class: 'chip ok oubo' }, 'בעל שליטה') : null);
+    return li;
+  };
+
+  /* the tick that declares a company public. Kept ON the node rather than in a
+     separate list: that is where the person reading the tree realises it, and
+     a list somewhere else would mean matching names by eye. */
+  function pubToggle(h, on) {
+    const key = normId(h.id) || String(h.name || '').trim();
+    if (!key) return null;
+    return el('label', { class: 'cbx', style: 'margin-inline-start:10px;font-size:11.5px' },
+      el('input', { type: 'checkbox', checked: on, onchange: e => {
+        if (e.target.checked) { if (!S.publicIds.includes(key)) S.publicIds.push(key); }
+        else S.publicIds = S.publicIds.filter(k => k !== key);
+        render();
+      } }),
+      el('span', {}, 'ציבורית'));
+  }
+
+  function companyNode(reg, depth, factor) {
+    const n = (S.tree.nodes || {})[reg];
+    const wrap = el('span', {});
+    wrap.append(nodeChip('co', (n && n.name) || reg, 'ח.פ. ' + reg));
+    const kids = el('ul', {});
+    (n && n.holders || []).forEach(h => kids.append(holderLi(h, depth + 1, factor)));
+    if (!(n && n.holders || []).length) kids.append(el('li', {},
+      el('span', { class: 'lbl' }, 'לא נמצאו בעלי מניות בנסח')));
+    const box2 = el('span', {});
+    box2.append(wrap);
+    const li = el('span', {});
+    put(li, box2, kids);
+    return li;
+  }
+
+  if (S.tree.root) {
+    const root = el('ul', {});
+    root.append(el('li', {}, companyNode(S.tree.root, 0, 1)));
+    tw.append(root);
+  }
+  tw.append(el('div', { class: 'oleg' },
+    el('span', {}, el('i', { style: 'border-color:var(--accent);background:var(--accent-soft)' }), 'חברה'),
+    el('span', {}, el('i', { style: 'border-color:var(--ok);background:var(--ok-soft)' }), 'אדם'),
+    el('span', {}, el('i', { style: 'border-color:var(--block);background:var(--block-soft)' }), 'חסר נסח'),
+    el('span', {}, el('i', { style: 'border-color:var(--rule-strong);background:var(--panel-3)' }), 'עוצרים כאן')));
+  box.append(tw);
   /* effective holdings */
   if (eff.owners.length) {
     box.append(el('div', { class: 'lbl', style: 'margin:14px 0 6px' }, 'אחזקה אפקטיבית'));
@@ -6475,16 +6704,25 @@ function chainSection() {
   if (S.parentsAdded.length) box.append(el('div', { class: 'note k' },
     el('b', {}, 'נסחי אם שנוספו: '), S.parentsAdded.join(' · ')));
 
-  /* what is still missing, and the request to the customer */
-  if (eff.missing.length) {
+  /* ---------------- where the chain stands ----------------
+     The question the whole section exists to answer is "am I done asking?", and
+     until now nothing answered it: every unopened company was listed as
+     missing, so a chain could never look finished even when the arithmetic said
+     it was. Three separate states now, and only the first one blocks. */
+
+  if (st.waitingFor.length) {
     box.append(el('div', { class: 'note e' },
-      el('b', {}, `חסר נסח של ${eff.missing.length === 1 ? 'חברת אם' : eff.missing.length + ' חברות אם'}: `),
-      eff.missing.map(m => m.name + (m.id ? ` (ח.פ. ${m.id})` : '') + ` — ${m.pct}%`).join(' · '),
+      el('b', {}, `חסר נסח של ${st.waitingFor.length === 1 ? 'חברת אם אחת'
+        : st.waitingFor.length + ' חברות אם'}: `),
+      st.waitingFor.map(m => m.name + (m.id ? ` (ח.פ. ${m.id})` : '') +
+        ` — ${m.pct}%`).join(' · '),
       el('div', { style: 'margin-top:6px' },
-        'בלי הנסחים האלה אי אפשר לדעת מי בעל השליטה. אפשר להשלים ידנית בטבלה למטה.')));
+        `כל אחת מהן מחזיקה ${T}% ומעלה בשרשרת, ולכן היא עשויה להסתיר בעל ` +
+        'שליטה ואי אפשר לדעת בלעדיה. גרור את הנסח למעלה — ואם ייחשפו בה עוד ' +
+        'חברות, נבקש גם אותן, עד שנגיע לאנשים.')));
     box.append(el('div', { class: 'bar', style: 'border:none;padding-top:10px;margin-top:8px' },
       el('button', { class: 'btn-sm', onclick: () => {
-        const txt = treeRequestText(S.company.name, eff.missing);
+        const txt = treeRequestText(S.company.name, st.waitingFor, { skipped: st.skipped });
         navigator.clipboard.writeText(txt).then(
           () => toast('בקשת הנסחים הועתקה — הדבק במייל ללקוח'),
           () => toast('ההעתקה נכשלה — סמן והעתק ידנית'));
@@ -6493,7 +6731,64 @@ function chainSection() {
         el('input', { type: 'checkbox', checked: S.chainAck,
           onchange: e => { S.chainAck = e.target.checked; render(); } }),
         el('span', {}, 'השלמתי את בעלי השליטה ידנית — אפשר להמשיך'))));
+  } else {
+    const ubos = eff.owners.filter(o => o.pct >= T);
+    if (st.uncertain) {
+      box.append(el('div', { class: 'note w' },
+        el('b', {}, 'השרשור נסגר, אבל האחוזים לא מלאים. '),
+        'לא כל האחזקות זוהו במלואן (ראה ההערות למעלה), ולכן ודא ידנית מי בעל שליטה.'));
+    } else if (ubos.length) {
+      box.append(el('div', { class: 'note k' },
+        el('b', {}, 'השרשור הושלם. '),
+        'כל מי שמחזיק ' + T + '% ומעלה זוהה' +
+        /* the claim has to match the arithmetic: with a "maybe" outstanding it
+           is "no company is REQUIRED", not "nothing could change this" */
+        (st.worthChecking.length
+          ? ', ואין חברה שחייבים לפתוח כדי לקבוע את זה. ראה את ההערה למטה. '
+          : ', ואין חברה נוספת שיכולה לשנות את זה — אין צורך בנסחים נוספים. '),
+        el('b', {}, 'בעלי השליטה: '),
+        ubos.map(o => o.name + ' ' + o.pct + '%').join(' · ')));
+    } else if (eff.owners.length) {
+      box.append(el('div', { class: 'note w' },
+        el('b', {}, `אין אף מחזיק שמגיע ל-${T}%. `),
+        'השרשור נסגר — כל החברות שיכלו להסתיר בעל שליטה נפתחו — אבל האחזקות ' +
+        'מפוזרות מתחת לרף. בדוק אם יש שליטה בדרך אחרת (הסכם, זכויות מיוחדות) ' +
+        'וקבע את בעלי השליטה ידנית.'));
+    }
   }
+
+  /* the two lists that are deliberately NOT being chased. Shown, not hidden:
+     "we did not ask for this" is a decision somebody may need to defend later,
+     and the number next to it is the reason. */
+  /* The third answer, and the one that keeps the pruning rule honest. Each of
+     these is under the threshold on its own, so none is demanded — but they can
+     add up on a single person, and saying nothing would be the quiet omission
+     the whole section exists to prevent. Both numbers are shown, because "might
+     matter" without them is a warning nobody can act on. */
+  if (st.worthChecking.length) box.append(el('div', { class: 'note w' },
+    el('b', {}, 'כדאי לבדוק (לא חוסם): '),
+    st.worthChecking.map(m => m.name + ' — ' + m.pct + '%').join(' · '),
+    el('div', { style: 'margin-top:5px' },
+      'כל אחת מהן לבד מתחת ל-' + T + '%, אבל האחזקות שטרם נפתחו מסתכמות ב-' +
+      st.combine.unopenedTotal + '%, ומי שהכי קרוב לרף מחזיק כבר ' +
+      st.combine.closest + '%. אם אותו אדם מחזיק גם דרך אחת מאלה הוא עובר את ' +
+      T + '% — ולכן לא מספיק להסתכל על כל אחזקה בנפרד. אם ידוע שאין חפיפה בין ' +
+      'המחזיקים, אפשר להתעלם.')));
+
+  if (st.skipped.length) box.append(el('div', { class: 'note i' },
+    el('b', {}, `לא נדרש נסח (מתחת ל-${T}% בשרשרת): `),
+    st.skipped.map(m => m.name + ` — ${m.pct}%`).join(' · '),
+    el('div', { style: 'margin-top:5px' },
+      'האחזקה בשרשרת היא התקרה של כל מי שמתחתיה, ולכן אף אחד מבעלי המניות ' +
+      `שלה לא יכול להגיע ל-${T}%.`)));
+
+  if (eff.stops.length) box.append(el('div', { class: 'note i' },
+    el('b', {}, 'חברות ציבוריות — עוצרים שם: '),
+    eff.stops.map(m => m.name + (m.id ? ` (ח.פ. ${m.id})` : '') + ` — ${m.pct}%`).join(' · '),
+    el('div', { style: 'margin-top:5px' },
+      'לחברה ציבורית אין בעל שליטה שאפשר להגיע אליו — האחזקות מפוזרות ומשתנות ' +
+      'מיום ליום — ולכן לא מבקשים את בעלי המניות שלה.')));
+
   return box;
 }
 
@@ -6726,9 +7021,13 @@ function companyProblems() {
   /* בעמותה גם ארבעת התפקידים נספרים, ואותם ריבועי "הלקוח ימלא" משחררים אותם */
   if (S.kind === 'amuta') amutaRoleProblems().forEach(x => problems.push(x));
   /* an unfinished ownership chain has to be acknowledged, not ignored: without
-     the parent נסחים nobody knows who the controlling person is */
-  const missing = treeEffective(S.tree).missing;
-  if (missing.length && !S.chainAck) problems.push('אישור על השלמת בעלי השליטה (שרשור חברות)');
+     the parent נסחים nobody knows who the controlling person is.
+     It blocks on `needed` and not on `missing`: a company holding less than
+     the threshold through the chain cannot contain a בעל שליטה, so demanding
+     its נסח - or an acknowledgement instead of it - was asking for paperwork
+     that could not change a single field in the documents. */
+  const stillNeeded = treeChainDone(S.tree, S.publicIds).waitingFor;
+  if (stillNeeded.length && !S.chainAck) problems.push('אישור על השלמת בעלי השליטה (שרשור חברות)');
   return problems;
 }
 
