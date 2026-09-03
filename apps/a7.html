@@ -611,7 +611,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.41" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.42" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1123,7 +1123,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.41 | 03.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.42 | 03.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -5233,7 +5233,7 @@ function gateTick() { if (gateHook) { try { gateHook(); } catch (e) { /* screen 
 
 /* ------------------------------- המנוע המקומי ---------------------------
    הקובץ הזה עובד לבד בלחיצה כפולה — מקלידים ומדביקים, וזה כל מה שצריך.
-   כשפותחים אותו דרך start-zoho.cmd הוא מוגש משרת מקומי קטן, והשרת מזריק
+   כשפותחים אותו דרך ClearShift Apps.cmd הוא מוגש משרת מקומי קטן, והשרת מזריק
    window.__ENGINE. רק אז נפתחות השליפות שדפדפן לא יכול לעשות מ-file://:
    גיידסטאר חוסם ב-CORS, ולרשות המסים נדרש סשן בשרת בגלל הקפצ'ה.
 
@@ -5259,7 +5259,8 @@ const PROXY  = (typeof window.__CS_PROXY === 'string' && window.__CS_PROXY) || '
    running we can call it directly whatever the page's own origin is, because it
    now sends Access-Control-Allow-Origin. That restores the whole flow —
    CAPTCHA, details and the evidence PNG — for anyone who starts
-   start-zoho.cmd, with no rebuild and no proxy address.
+   ClearShift Apps.cmd (which carries the engine inside it), with no rebuild
+   and no proxy address.
 
    Ten ports, not one. The engine binds the first free port in 8430..8439 on
    purpose — a stale instance holding 8430 would otherwise answer with old code
@@ -5671,22 +5672,24 @@ function osekLookupPanel() {
 
   if (!ENGINE) {
     /* ההודעה הזאת היתה קודם סוף פסוק — "לא זמינה כאן, הקלידו למטה" — וזה היה
-       מטעה פעמיים: המשיכה כן עובדת, והדרך אליה היא לא "עוד פעולה" אלא פשוט
-       לפתוח את הכלים מהקובץ הנכון. start-zoho.cmd מרים את המנוע ופותח את
-       המשגר בעצמו, ואז הכלי מוגש מהמנוע ואין כאן הודעה בכלל. */
+       מטעה פעמיים: המשיכה כן עובדת, והדרך אליה היא לא "עוד פעולה" אלא לפתוח
+       את הכלים מהקובץ הנכון. הקובץ הזה הוא ClearShift Apps.cmd: הוא נושא את
+       המנוע בתוכו, מרים אותו, ופותח את המשגר בעצמו — ואז הכלי מוגש מהמנוע
+       ואין כאן הודעה בכלל. (עד היום כתוב היה כאן start-zoho.cmd, שהוא מסלול
+       ידני שכבר לא מופץ — הפניה לקובץ שלא קיים אצל המשתמש גרועה מאין הודעה.) */
     const again = el('button', { class: 'btn-ghost', onclick: async () => {
       again.disabled = true; again.textContent = 'מחפש מנוע…';
       const found = await probeLocalEngine();
       if (found) { toast('המנוע נמצא — המשיכה זמינה'); render(); }
       else { again.disabled = false; again.textContent = 'נסה להתחבר למנוע';
-             toast('המנוע לא רץ — פתחו את הכלים מ-start-zoho.cmd'); }
+             toast('המנוע לא רץ — פתחו את הכלים מ-ClearShift Apps.cmd'); }
     } }, 'נסה להתחבר למנוע');
     p.append(el('div', { class: 'note i' },
       'המשיכה מרשות המסים עוברת דרך המנוע המקומי, והוא לא רץ כרגע — ',
       'כי הכלי נפתח ישירות מקובץ ה-HTML. ',
-      el('b', {}, 'פתחו את הכלים מ-start-zoho.cmd'),
-      ' שבתיקייה המשותפת: לחיצה אחת מרימה את המנוע ופותחת את המשגר, ואין ' +
-      'שום דבר נוסף לעשות. אם המנוע כבר עלה — '),
+      el('b', {}, 'פתחו את הכלים מ-ClearShift Apps.cmd'),
+      ' (או מקיצור הדרך "ClearShift Apps" שעל שולחן העבודה): לחיצה אחת מרימה ' +
+      'את המנוע ופותחת את המשגר, ואין שום דבר נוסף לעשות. אם המנוע כבר עלה — '),
       el('div', { style: 'margin:8px 0' }, again),
       el('div', { class: 'lbl' },
         'אפשר גם להמשיך בלי זה — ', el('b', {}, 'הקלידו את הפרטים למטה'),
