@@ -611,7 +611,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.40" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.41" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1123,7 +1123,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.40 | 03.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.41 | 03.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -5259,21 +5259,36 @@ const PROXY  = (typeof window.__CS_PROXY === 'string' && window.__CS_PROXY) || '
    running we can call it directly whatever the page's own origin is, because it
    now sends Access-Control-Allow-Origin. That restores the whole flow —
    CAPTCHA, details and the evidence PNG — for anyone who starts
-   start-zoho.cmd, with no rebuild and no proxy address. */
-const ENGINE_URL = 'http://localhost:8430';
+   start-zoho.cmd, with no rebuild and no proxy address.
+
+   Ten ports, not one. The engine binds the first free port in 8430..8439 on
+   purpose — a stale instance holding 8430 would otherwise answer with old code
+   and look like a broken tool. Probing only 8430 would then find the stale one,
+   or nothing at all when some unrelated program owns that port. So every port
+   in the range is asked at once and the first real answer wins. */
+const ENGINE_PORTS = [8430, 8431, 8432, 8433, 8434, 8435, 8436, 8437, 8438, 8439];
 let LOCAL = null;                 /* set once a probe succeeds */
 async function probeLocalEngine() {
   if (window.__ENGINE) return null;          /* the engine already serves us */
-  try {
-    const r = await fetch(ENGINE_URL + '/api/ping');
-    if (r.ok) {
-      LOCAL  = ENGINE_URL;
-      /* ENGINE is what every screen reads to decide whether to offer a lookup
-         at all, so opening the route is not enough - it has to be announced. */
-      ENGINE = ENGINE || 'local';
-      return LOCAL;
-    }
-  } catch (e) { /* not running — the proxy or manual entry takes over */ }
+  const hit = await Promise.all(ENGINE_PORTS.map(async p => {
+    const base = 'http://localhost:' + p;
+    try {
+      const r = await fetch(base + '/api/ping');
+      if (!r.ok) return null;
+      const j = await r.json();
+      /* the reply has to be OUR engine: any other server on the port could
+         answer 200 to /api/ping and we would then talk to it all session */
+      return (j && j.ok) ? base : null;
+    } catch (e) { return null; }
+  }));
+  const found = hit.find(Boolean);
+  if (found) {
+    LOCAL = found;
+    /* ENGINE is what every screen reads to decide whether to offer a lookup
+       at all, so opening the route is not enough - it has to be announced. */
+    ENGINE = ENGINE || 'local';
+    return LOCAL;
+  }
   return null;
 }
 let ENGINE = (typeof window.__ENGINE === 'string') ? window.__ENGINE
@@ -5655,21 +5670,23 @@ function osekLookupPanel() {
         } })));
 
   if (!ENGINE) {
-    /* ההודעה הזאת היתה קודם סוף פסוק, וזה היה מטעה: המשיכה כן עובדת — היא
-       רק צריכה את המנוע המקומי, שנמצא באותה תיקייה שממנה ירד הכלי. אין סיבה
-       לשלוח מכאן להקלדה בלי לומר את זה, ולכן כאן יש גם הוראה וגם כפתור
-       שמנסה להתחבר שוב בלי לרענן את הדף ובלי לאבד מה שכבר הוקלד. */
+    /* ההודעה הזאת היתה קודם סוף פסוק — "לא זמינה כאן, הקלידו למטה" — וזה היה
+       מטעה פעמיים: המשיכה כן עובדת, והדרך אליה היא לא "עוד פעולה" אלא פשוט
+       לפתוח את הכלים מהקובץ הנכון. start-zoho.cmd מרים את המנוע ופותח את
+       המשגר בעצמו, ואז הכלי מוגש מהמנוע ואין כאן הודעה בכלל. */
     const again = el('button', { class: 'btn-ghost', onclick: async () => {
       again.disabled = true; again.textContent = 'מחפש מנוע…';
       const found = await probeLocalEngine();
       if (found) { toast('המנוע נמצא — המשיכה זמינה'); render(); }
       else { again.disabled = false; again.textContent = 'נסה להתחבר למנוע';
-             toast('המנוע לא רץ — הפעילו start-zoho.cmd'); }
+             toast('המנוע לא רץ — פתחו את הכלים מ-start-zoho.cmd'); }
     } }, 'נסה להתחבר למנוע');
     p.append(el('div', { class: 'note i' },
-      'המשיכה האוטומטית של פרטי העוסק מרשות המסים דורשת את המנוע המקומי, ',
-      'והוא לא רץ כרגע. ', el('b', {}, 'הפעילו start-zoho.cmd'),
-      ' מהתיקייה המשותפת של הכלים, ואז לחצו כאן:'),
+      'המשיכה מרשות המסים עוברת דרך המנוע המקומי, והוא לא רץ כרגע — ',
+      'כי הכלי נפתח ישירות מקובץ ה-HTML. ',
+      el('b', {}, 'פתחו את הכלים מ-start-zoho.cmd'),
+      ' שבתיקייה המשותפת: לחיצה אחת מרימה את המנוע ופותחת את המשגר, ואין ' +
+      'שום דבר נוסף לעשות. אם המנוע כבר עלה — '),
       el('div', { style: 'margin:8px 0' }, again),
       el('div', { class: 'lbl' },
         'אפשר גם להמשיך בלי זה — ', el('b', {}, 'הקלידו את הפרטים למטה'),
