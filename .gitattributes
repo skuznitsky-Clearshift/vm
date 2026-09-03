@@ -1,0 +1,7 @@
+# The files under apps/ are published so that a launcher already downloaded can
+# fetch a newer tool and run it. That copy is meant to be the SAME text as the
+# one carried inside the build, so nothing here may be rewritten on the way in
+# or out: with autocrlf on, git stored LF where the build wrote CRLF and the
+# served file was ~1KB smaller than the local one - which also made the size
+# check after a publish meaningless.
+apps/** -text
