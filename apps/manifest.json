@@ -1,6 +1,19 @@
 {
-  "v": 1,
-  "shell": "1.6",
-  "proxy": "",
-  "tools": {}
+    "proxy":  "",
+    "tools":  {
+                  "g6":  {
+                             "ver":  "1.22",
+                             "url":  "g6.html"
+                         },
+                  "b3":  {
+                             "ver":  "1.1",
+                             "url":  "b3.html"
+                         },
+                  "a7":  {
+                             "ver":  "1.39",
+                             "url":  "a7.html"
+                         }
+              },
+    "shell":  "1.12",
+    "v":  1
 }

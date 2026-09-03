@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><script>window.SKIntro={play:function(){return Promise.resolve(false)},skip:function(){},reset:function(){},off:true};</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClearShift — פעילות לקוח</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 39 39'%3E%3Cpath d='M0.5 19 A19 19 0 1 1 38.5 19 A19 19 0 0 1 19.5 38 L19.5 19 Z' fill='%23167398'/%3E%3Cpath d='M0.5 24.5 L8.5 24.5 L0.5 33 Z' fill='%23167398'/%3E%3Cpath d='M13.5 29.5 L13.5 37.5 L4.5 37.5 Z' fill='%23167398'/%3E%3C/svg%3E">
+<style>
+:root{
+  /* ClearShift brand palette — logo teal #167398 */
+  --page:#f0f6f9; --surface:#ffffff; --ink:#0d222c; --ink-2:#3f5f6f; --muted:#7995a3;
+  --grid:#dbeaf0; --baseline:#b0cfdb; --border:rgba(22,115,152,.16);
+  --vol:#167398; --fee:#3595bb;
+  --accent:#167398; --accent-ink:#115c7a; --btn-ink:#ffffff; --wordmark:#12536e;
+  --good:#0ca30c; --good-ink:#006300; --warn:#b97a00; --warn-bg:rgba(250,178,25,.14);
+  --bad:#d03b3b; --bad-bg:rgba(208,59,59,.12);
+  --good-bg:rgba(12,163,12,.10);
+  --accent-tint:rgba(22,115,152,.06); --accent-border:rgba(22,115,152,.38);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page:#081217; --surface:#0e1d24; --ink:#ecf6fa; --ink-2:#a3c3d1; --muted:#6c8b99;
+    --grid:#1a323d; --baseline:#2a4a58; --border:rgba(120,190,220,.15);
+    --vol:#4aa8cc; --fee:#71c1dd;
+    --accent:#4aa8cc; --accent-ink:#8fd0e8; --btn-ink:#06242f; --wordmark:#bfe4f2;
+    --good:#0ca30c; --good-ink:#4ec24e; --warn:#fab219; --warn-bg:rgba(250,178,25,.12);
+    --bad:#e66767; --bad-bg:rgba(208,59,59,.18);
+    --good-bg:rgba(12,163,12,.14);
+    --accent-tint:rgba(74,168,204,.10); --accent-border:rgba(74,168,204,.45);
+  }
+}
+html{background:var(--page);}
+body{
+  margin:0; padding:28px 20px 48px; direction:rtl;
+  font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+  color:var(--ink); background:var(--page); line-height:1.45;
+}
+.wrap{max-width:1060px; margin:0 auto; display:flex; flex-direction:column; gap:16px;}
+.eyebrow{font-size:12px; letter-spacing:.08em; color:var(--accent-ink); text-transform:uppercase; font-weight:600;}
+.brand img{height:32px; display:block; margin-bottom:10px;}
+.brand-big{display:flex; justify-content:center; margin-bottom:10px;}
+.brand-big img{height:38px;}
+@media (prefers-color-scheme: dark){
+  .brand img, .brand-big img{filter:brightness(1.9) saturate(.75);}
+}
+.cur-box{margin-top:8px; border:1px solid var(--grid); border-radius:8px; padding:7px 10px; display:flex; flex-direction:column; gap:4px; background:var(--accent-tint);}
+.cur-row{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-2);}
+.cur-row b{color:var(--ink); font-weight:600;}
+.cur-row span{direction:ltr; font-variant-numeric:tabular-nums;}
+header h1{margin:2px 0 0; font-size:30px; font-weight:700; letter-spacing:-.01em; text-wrap:balance;}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+.chip{
+  font-size:12.5px; color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--border); border-radius:999px; padding:4px 12px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.chip b{color:var(--ink); font-weight:600;}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px;}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;}
+.kpi{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
+.kpi .lbl{font-size:12px; color:var(--muted); font-weight:600;}
+.kpi .val{font-size:23px; font-weight:700; margin-top:4px; letter-spacing:-.01em;}
+.kpi .sub{font-size:12px; color:var(--ink-2); margin-top:2px;}
+.kpi .sub.up{color:var(--good-ink); font-weight:600;}
+h2{font-size:15px; margin:0 0 2px; font-weight:700;}
+.card .desc{font-size:12.5px; color:var(--muted); margin:0 0 12px;}
+.chart-holder{direction:ltr; position:relative;}
+.chart-holder svg{display:block; width:100%; height:auto;}
+.bar{cursor:pointer;}
+.tooltip{
+  position:absolute; pointer-events:none; direction:rtl; z-index:5;
+  background:var(--ink); color:var(--page); border-radius:8px; padding:8px 12px;
+  font-size:12.5px; line-height:1.5; white-space:nowrap; opacity:0;
+  transition:opacity .12s; box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:760px){ .two-col{grid-template-columns:1fr;} }
+.forecast{
+  background:linear-gradient(180deg,var(--accent-tint),transparent 70%), var(--surface);
+  border:1px solid var(--accent-border);
+}
+.forecast .big{font-size:34px; font-weight:700; letter-spacing:-.02em; margin:6px 0 0;}
+.forecast .big small{font-size:15px; font-weight:600; color:var(--ink-2);}
+.f-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:14px;}
+.f-item .lbl{font-size:12px; color:var(--muted); font-weight:600;}
+.f-item .val{font-size:17px; font-weight:700; margin-top:1px;}
+.f-item .val small{font-size:12px; font-weight:600; color:var(--ink-2);}
+.f-note{font-size:11.5px; color:var(--muted); margin-top:14px; border-top:1px solid var(--grid); padding-top:10px;}
+.rec-line{
+  font-size:14.5px; line-height:1.6; background:var(--accent-tint);
+  border:1px solid var(--accent-border); border-radius:8px; padding:10px 14px; margin-bottom:12px;
+}
+.status-pill{
+  display:inline-flex; align-items:center; gap:6px; border-radius:999px;
+  font-size:12.5px; font-weight:600; padding:5px 12px; margin-top:10px; line-height:1.4;
+}
+.status-pill.ok{background:var(--good-bg); color:var(--good-ink);}
+.status-pill.due{background:var(--warn-bg); color:var(--warn);}
+.vbar{height:10px; border-radius:6px; background:var(--grid); overflow:hidden; margin:10px 0 4px; direction:ltr;}
+.vbar > div{height:100%; background:var(--fee); border-radius:6px;}
+.novoucher{
+  font-size:17px; font-weight:700; color:var(--muted); padding:18px 0 8px; text-align:center;
+}
+.novoucher .sm{display:block; font-size:12.5px; font-weight:400; margin-top:6px;}
+ul.insights{margin:0; padding:0 18px 0 0; display:flex; flex-direction:column; gap:8px;}
+ul.insights li{font-size:13.5px; color:var(--ink-2);}
+ul.insights li b{color:var(--ink);}
+.table-scroll{overflow-x:auto;}
+table{border-collapse:collapse; width:100%; font-size:13px;}
+th{
+  text-align:right; font-size:11.5px; color:var(--muted); font-weight:600;
+  border-bottom:1px solid var(--baseline); padding:6px 10px; white-space:nowrap;
+}
+td{padding:7px 10px; border-bottom:1px solid var(--grid); white-space:nowrap; font-variant-numeric:tabular-nums;}
+td.num{text-align:left; direction:ltr;}
+.st{display:inline-block; font-size:11.5px; font-weight:600; border-radius:999px; padding:2px 10px; background:var(--good-bg); color:var(--good-ink);}
+.st.mid{background:var(--warn-bg); color:var(--warn);}
+.st.bad{background:var(--bad-bg); color:var(--bad);}
+footer{font-size:11.5px; color:var(--muted); text-align:center; margin-top:4px;}
+.bar-label{font-size:10.5px; font-weight:600; fill:var(--ink-2);}
+.axis-t{font-size:10.5px; fill:var(--muted);}
+@media (prefers-reduced-motion: reduce){ .tooltip{transition:none;} }
+
+/* ---- drop screen ---- */
+#dropScreen{min-height:calc(100vh - 120px); display:flex; align-items:center; justify-content:center;}
+.dropzone{
+  width:min(640px, 92vw); border:2px dashed var(--baseline); border-radius:16px;
+  background:var(--surface); padding:56px 36px; text-align:center; cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.dropzone.over{border-color:var(--vol); background:var(--accent-tint);}
+.dropzone .icon{font-size:44px;}
+.dropzone h1{font-size:24px; margin:14px 0 6px; font-weight:700;}
+.dropzone p{color:var(--ink-2); font-size:14px; margin:0;}
+.dropzone .hint{color:var(--muted); font-size:12.5px; margin-top:18px;}
+.dropzone .err{color:var(--bad); font-weight:600; font-size:13.5px; margin-top:16px; white-space:pre-wrap;}
+.btn{
+  display:inline-block; margin-top:20px; background:var(--accent); color:var(--btn-ink); border:none;
+  font:inherit; font-weight:600; font-size:14px; padding:9px 22px; border-radius:8px; cursor:pointer;
+}
+.btn:focus-visible, .dropzone:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.btn.ghost{
+  background:transparent; color:var(--ink-2); border:1px solid var(--border);
+  margin:0; padding:5px 14px; font-size:12.5px;
+}
+.topbar{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+.controls{display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;}
+.rate-ctl{
+  display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2);
+  background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px 10px;
+}
+.rate-ctl input{
+  width:56px; font:inherit; font-weight:600; color:var(--ink); background:transparent;
+  border:none; outline:none; text-align:center; direction:ltr;
+}
+#dash{display:none;}
+.ver{font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.02em; direction:ltr; align-self:center;}
+.dropzone .ver{display:block; margin-top:12px; opacity:.8;}
+</style>
+<script data-speed="0.75">
+/* ============================================================================
+   SK Products — intro signature animation
+   ----------------------------------------------------------------------------
+   Drop-in, zero dependencies. Add ONE line to any tool, ideally in <head>:
+
+       <script src="sk-intro.js"><\/script>
+
+   Options (data-* on the script tag):
+       data-auto="false"     do not play on load; call SKIntro.play() yourself
+       data-speed="1.25"     >1 faster, <1 slower (default 0.75 — the slow playback,
+                             the full sequence runs ~4.8s)
+       data-once="session"   play once per browser session ("day" / "never" too)
+       data-sub="..."        override the subtitle line
+       data-word="PRODUCTS"  override the wordmark tail
+
+   API:  SKIntro.play() -> Promise   |   SKIntro.skip()   |   SKIntro.reset()
+   Event: document fires "sk-intro:done" when it finishes.
+
+   Subtitle text (kept as \u escapes so the file is encoding-proof):
+       "פותח ע"י ספיר קוזניצקי וקלוד"
+   ==========================================================================*/
+(function () {
+  'use strict';
+  if (window.SKIntro) return;
+
+  /* "פותח ע"י ספיר קוזניצקי וקלוד" — escaped so the file survives any encoding */
+  var SUB_DEFAULT =
+    'פותח ע"י ' +
+    'ספיר קוזניצקי ' +
+    'וקלוד';
+
+  var tag = document.currentScript;
+  var ds  = (tag && tag.dataset) || {};
+
+  var CFG = {
+    auto  : ds.auto !== 'false',
+    speed : parseFloat(ds.speed) || 0.75,   /* slow playback is the default */
+    once  : ds.once || 'never',
+    sub   : ds.sub  || SUB_DEFAULT,
+    mono  : ds.mono || 'SK',
+    word  : ds.word || 'PRODUCTS'
+  };
+
+  /* ---------------------------------------------------------------- styles */
+  var CSS = [
+'.ski{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;opacity:0;',
+'  background:radial-gradient(100% 80% at 50% 42%,#0A1130 0%,#050818 40%,#010206 72%,#000 100%);',
+'  transition:opacity .22s ease;-webkit-font-smoothing:antialiased;cursor:pointer;--coil:1420ms;',
+'  --rb:#2F55E8;--rb-lo:#12266E;--rb-hi:#8AA9FF;--rb-pale:#DCE6FF}',
+'.ski::after{content:"";position:absolute;inset:0;pointer-events:none;',
+'  background:radial-gradient(46% 34% at 50% 43%,rgba(47,85,232,.22),transparent 72%);',
+'  opacity:0;transition:opacity .5s ease}',
+'.ski.hit::after{opacity:1}',
+'.ski.in{opacity:1}',
+'.ski.out{opacity:0;transform:scale(1.035);transition:opacity .5s ease,transform .5s ease}',
+'.ski-stage{display:flex;flex-direction:column;align-items:center;position:relative}',
+'.ski-mark{width:min(56vmin,288px);height:auto;overflow:visible;display:block;margin-bottom:-6px}',
+'.ski-spin{transform-box:view-box;transform-origin:200px 200px;',
+'  transform:rotate(-118deg) scale(1.1)}',
+'.ski.go .ski-spin{animation:ski-coil var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'.ski.go .ski-rev{animation:ski-draw var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'.ski.go .ski-spark{animation:ski-sparkrun var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'@keyframes ski-coil{to{transform:rotate(0deg) scale(1)}}',
+'.ski-headwrap{opacity:0}',
+'.ski.go .ski-headwrap{animation:ski-fade .12s ease forwards}',
+'@keyframes ski-fade{to{opacity:1}}',
+'.ski.hit .ski-headwrap{opacity:0;animation:none;transition:opacity .2s ease}',
+'.ski.hit .ski-spark{opacity:0;transition:opacity .35s ease}',
+'.ski-arc{fill:none;stroke:rgba(138,169,255,.22);stroke-width:1;opacity:0;',
+'  transition:opacity .6s ease}',
+'.ski.hit .ski-arc{opacity:1}',
+'.ski-arc.a{animation:ski-spin 26s linear infinite}',
+'.ski-arc.b{animation:ski-spin 18s linear infinite reverse}',
+'@keyframes ski-spin{to{transform:rotate(360deg)}}',
+'.ski-mono{font-family:Impact,Haettenschweiler,"Arial Narrow","Arial Black",sans-serif;',
+'  font-size:50px;text-anchor:middle;letter-spacing:3px;fill:url(#ski-gt);opacity:0;',
+'  transform-box:view-box;transform:scale(1.55);transform-origin:200px 200px;filter:blur(6px)}',
+'.ski.hit .ski-mono{opacity:1;transform:scale(1);filter:blur(0);',
+'  transition:opacity .34s ease,transform .5s cubic-bezier(.16,1,.3,1),filter .34s ease}',
+'.ski-imp{fill:none;stroke:var(--rb-hi);stroke-width:2;opacity:0;transform-box:view-box;',
+'  transform-origin:200px 200px}',
+'.ski.hit .ski-imp{animation:ski-imp .78s cubic-bezier(.16,1,.3,1) forwards}',
+'.ski.hit .ski-imp.d{animation-delay:.11s;stroke-width:1;stroke-dasharray:3 9}',
+'@keyframes ski-imp{0%{opacity:.95;transform:scale(.28)}100%{opacity:0;transform:scale(2.05)}}',
+'.ski-word{margin-top:15px;display:flex;align-items:baseline;gap:.34em;position:relative;',
+'  direction:ltr;opacity:0;clip-path:inset(0 50% 0 50%);',
+'  font-family:Impact,Haettenschweiler,"Arial Narrow","Arial Black",sans-serif}',
+'.ski.word .ski-word{opacity:1;clip-path:inset(-30% -8% -30% -8%);',
+'  transition:clip-path .6s cubic-bezier(.16,1,.3,1),opacity .28s ease}',
+'.ski-word>span{background:linear-gradient(180deg,#F2F6FF 0%,#9FB8FF 55%,#2F55E8 100%);',
+'  -webkit-background-clip:text;background-clip:text;color:transparent;',
+'  filter:drop-shadow(0 0 16px rgba(47,85,232,.5))}',
+'.ski-sk{font-size:clamp(32px,7.4vmin,52px);letter-spacing:.05em}',
+'.ski-word>span.ski-pd{font-size:clamp(14px,3vmin,21px);letter-spacing:.36em;',
+'  padding-inline-start:.36em;background-image:linear-gradient(180deg,#D3E0FF,#4E70DC);',
+'  filter:drop-shadow(0 0 10px rgba(47,85,232,.35))}',
+'.ski-blade{position:absolute;inset:-40% -14%;pointer-events:none;opacity:0;',
+'  background:linear-gradient(104deg,transparent 42%,rgba(214,228,255,.9) 50%,transparent 58%)}',
+'.ski.word .ski-blade{animation:ski-blade .72s cubic-bezier(.4,0,.2,1) .06s}',
+'@keyframes ski-blade{0%{opacity:0;transform:translateX(-135%) skewX(-16deg)}',
+'  25%{opacity:1}100%{opacity:0;transform:translateX(135%) skewX(-16deg)}}',
+'.ski-rule{margin-top:15px;height:1px;width:min(58vmin,300px);transform:scaleX(0);',
+'  background:linear-gradient(90deg,transparent,rgba(138,169,255,.55),transparent)}',
+'.ski.sub .ski-rule{transform:scaleX(1);transition:transform .6s cubic-bezier(.16,1,.3,1)}',
+'.ski-sub{margin-top:13px;direction:rtl;opacity:0;transform:translateY(9px);',
+'  font-family:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;',
+'  font-size:clamp(12.5px,2.5vmin,15px);letter-spacing:.01em;color:#93A8D6;text-align:center}',
+'.ski.sub .ski-sub{opacity:1;transform:none;',
+'  transition:opacity .5s ease,transform .55s cubic-bezier(.16,1,.3,1)}',
+'@media (prefers-reduced-motion:reduce){',
+'  .ski *,.ski::after{transition-duration:.01ms!important;animation:none!important}}'
+  ].join('\n');
+
+  /* ------------------------------------------------------- spiral geometry */
+  var CX = 200, CY = 200, R0 = 157, R1 = 57, TURNS = 2.35, N = 620, WMAX = 24;
+
+  function pts() {
+    var out = [], i, t, th, r;
+    for (i = 0; i <= N; i++) {
+      t  = i / N;
+      th = -1.62 - t * TURNS * Math.PI * 2;                 // clockwise, inward
+      r  = R1 + (R0 - R1) * Math.pow(1 - t, 1.18);          // eases into centre
+      r += 5.5 * Math.sin(t * Math.PI * 6.5) * (1 - t);     // serpentine wobble
+      out.push([CX + r * Math.cos(th), CY + r * Math.sin(th), t]);
+    }
+    return out;
+  }
+  function width(t) {                                       // thin tail -> full head
+    return WMAX * (Math.pow(t, .45) * (1 - .42 * t) + .34 * Math.pow(t, 16));
+  }
+  function n2(v) { return Math.round(v * 100) / 100; }
+
+  function centerline(p) {
+    var d = 'M' + n2(p[0][0]) + ' ' + n2(p[0][1]), i;
+    for (i = 1; i < p.length; i++) d += 'L' + n2(p[i][0]) + ' ' + n2(p[i][1]);
+    return d;
+  }
+  function tapered(p) {
+    var L = [], R = [], i, a, b, dx, dy, l, w, nx, ny;
+    for (i = 0; i < p.length; i++) {
+      a = p[Math.max(0, i - 1)]; b = p[Math.min(p.length - 1, i + 1)];
+      dx = b[0] - a[0]; dy = b[1] - a[1]; l = Math.hypot(dx, dy) || 1;
+      w  = width(p[i][2]) / 2; nx = -dy / l * w; ny = dx / l * w;
+      L.push([p[i][0] + nx, p[i][1] + ny]);
+      R.push([p[i][0] - nx, p[i][1] - ny]);
+    }
+    R.reverse();
+    return 'M' + L.concat(R).map(function (q) { return n2(q[0]) + ' ' + n2(q[1]); }).join('L') + 'Z';
+  }
+
+  /* ------------------------------------------------------------ svg markup */
+  function svg(cl, cd) {
+    return '' +
+'<svg class="ski-mark" viewBox="0 0 400 400" aria-hidden="true">' +
+ '<defs>' +
+  '<linearGradient id="ski-g" x1="0" y1="0" x2="1" y2="1">' +
+   '<stop offset="0" stop-color="#12266E"/><stop offset=".45" stop-color="#2F55E8"/>' +
+   '<stop offset="1" stop-color="#9FBBFF"/></linearGradient>' +
+  '<linearGradient id="ski-gt" x1="0" y1="0" x2="0" y2="1">' +
+   '<stop offset="0" stop-color="#F2F6FF"/><stop offset=".6" stop-color="#9FB8FF"/>' +
+   '<stop offset="1" stop-color="#2F55E8"/></linearGradient>' +
+  '<radialGradient id="ski-h"><stop offset="0" stop-color="#FFFFFF"/>' +
+   '<stop offset=".4" stop-color="#CFE0FF"/><stop offset="1" stop-color="#2F55E8" stop-opacity="0"/>' +
+  '</radialGradient>' +
+  '<filter id="ski-bl" x="-60%" y="-60%" width="220%" height="220%">' +
+   '<feGaussianBlur stdDeviation="7"/></filter>' +
+  '<filter id="ski-bs" x="-60%" y="-60%" width="220%" height="220%">' +
+   '<feGaussianBlur stdDeviation="2.4"/></filter>' +
+  '<mask id="ski-m" maskUnits="userSpaceOnUse" x="-80" y="-80" width="560" height="560">' +
+   '<path class="ski-rev" d="' + cd + '" fill="none" stroke="#fff" ' +
+   'stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></mask>' +
+ '</defs>' +
+ '<g class="ski-spin">' +
+  '<circle class="ski-arc a" cx="200" cy="200" r="188" stroke-dasharray="2 14"/>' +
+  '<circle class="ski-arc b" cx="200" cy="200" r="179" stroke-dasharray="34 120"/>' +
+  '<g mask="url(#ski-m)">' +
+   '<path d="' + cl + '" fill="url(#ski-g)" opacity=".55" filter="url(#ski-bl)"/>' +
+   '<path d="' + cl + '" fill="url(#ski-g)"/>' +
+   '<path class="ski-spark" d="' + cd + '" fill="none" stroke="#DCE6FF" stroke-width="3.2" ' +
+    'stroke-linecap="round" filter="url(#ski-bs)"/>' +
+  '</g>' +
+  '<g class="ski-headwrap">' +
+   '<animateMotion class="ski-mo" dur="1.42s" begin="indefinite" fill="freeze" ' +
+    'calcMode="spline" keyTimes="0;1" keyPoints="0;1" keySplines="0.65 0 0.35 1" ' +
+    'path="' + cd + '"/>' +
+   '<circle class="ski-head" r="17" fill="url(#ski-h)"/>' +
+   '<circle class="ski-head2" r="3.4" fill="#FFFFFF"/></g>' +
+ '</g>' +
+ '<circle class="ski-imp" cx="200" cy="200" r="72"/>' +
+ '<circle class="ski-imp d" cx="200" cy="200" r="96"/>' +
+ '<text class="ski-mono" x="200" y="220">' + CFG.mono + '</text>' +
+'</svg>';
+  }
+
+  /* -------------------------------------------------------------- timeline */
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var running = null;
+
+  function shouldSkip() {
+    if (CFG.once === 'never') return false;
+    try {
+      var k = 'sk-intro:' + CFG.once, s = sessionStorage;
+      if (CFG.once === 'day') {
+        var today = new Date().toISOString().slice(0, 10);
+        if (localStorage.getItem(k) === today) return true;
+        localStorage.setItem(k, today); return false;
+      }
+      if (s.getItem(k)) return true;
+      s.setItem(k, '1'); return false;
+    } catch (e) { return false; }
+  }
+
+  function play(opt) {
+    if (running) return running;
+    opt = opt || {};
+    var sp = opt.speed || CFG.speed;
+
+    var style = document.getElementById('ski-css');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'ski-css'; style.textContent = CSS;
+      document.head.appendChild(style);
+    }
+
+    var p  = pts(), cd = centerline(p), cl = tapered(p);
+    var el = document.createElement('div');
+    el.className = 'ski';
+    el.innerHTML =
+      '<div class="ski-stage">' + svg(cl, cd) +
+        '<div class="ski-word"><span class="ski-sk">' + CFG.mono + '</span>' +
+          '<span class="ski-pd">' + CFG.word + '</span><i class="ski-blade"></i></div>' +
+        '<div class="ski-rule"></div>' +
+        '<div class="ski-sub">' + CFG.sub + '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+
+    var htmlOv = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+
+    var rev   = el.querySelector('.ski-rev');
+    var spark = el.querySelector('.ski-spark');
+    var mo    = el.querySelector('.ski-mo');
+    var LEN   = rev.getTotalLength();
+
+    /* keyframes depend on the measured path length, so they are built per run */
+    var kf = document.getElementById('ski-kf') || document.createElement('style');
+    kf.id = 'ski-kf';
+    kf.textContent =
+      '@keyframes ski-draw{from{stroke-dashoffset:' + LEN + '}to{stroke-dashoffset:0}}' +
+      '@keyframes ski-sparkrun{from{stroke-dashoffset:52}to{stroke-dashoffset:' + (52 - LEN) + '}}';
+    document.head.appendChild(kf);
+
+    rev.style.strokeDasharray    = LEN + ' ' + LEN;
+    rev.style.strokeDashoffset   = LEN;
+    spark.style.strokeDasharray  = '52 ' + (LEN + 60);
+    spark.style.strokeDashoffset = 52;
+    el.style.setProperty('--coil', (1420 / sp) + 'ms');
+    mo.setAttribute('dur', (1.42 / sp) + 's');
+
+    var timers = [], done, fin = new Promise(function (r) { done = r; });
+    function at(ms, fn) { timers.push(setTimeout(fn, ms / sp)); }
+
+    var ended = false;
+    function finish() {
+      if (ended) return; ended = true;
+      timers.forEach(clearTimeout); timers = [];
+      el.classList.add('out');
+      setTimeout(function () {
+        el.remove();
+        document.documentElement.style.overflow = htmlOv;
+        running = null;
+        document.dispatchEvent(new CustomEvent('sk-intro:done'));
+        done();
+      }, 520);
+    }
+
+    el.addEventListener('click', finish);
+    function key() { window.removeEventListener('keydown', key); finish(); }
+    window.addEventListener('keydown', key);
+
+    requestAnimationFrame(function () { el.classList.add('in'); });
+
+    if (reduce) {
+      rev.style.strokeDashoffset = 0;
+      spark.style.opacity = 0;
+      el.querySelector('.ski-spin').style.transform = 'none';
+      el.classList.add('hit', 'word', 'sub');
+      at(1900, finish);
+    } else {
+      at(110, function () {
+        el.classList.add('go');
+        try { mo.beginElement(); } catch (e) {}
+      });
+      at(110 + 1420, function () { el.classList.add('hit'); });
+      at(110 + 1770, function () { el.classList.add('word'); });
+      at(110 + 2190, function () { el.classList.add('sub'); });
+      at(110 + 3090, finish);
+    }
+
+    running = fin;
+    return fin;
+  }
+
+  var API = {
+    play  : play,
+    skip  : function () { var e = document.querySelector('.ski'); if (e) e.click(); },
+    config: CFG,
+    reset : function () {
+      try { sessionStorage.removeItem('sk-intro:session');
+            localStorage.removeItem('sk-intro:day'); } catch (e) {}
+    }
+  };
+  window.SKIntro = API;
+
+  if (CFG.auto && !shouldSkip()) {
+    if (document.body) play();
+    else document.addEventListener('DOMContentLoaded', function () { play(); });
+  }
+})();
+
+</script>
+<!--SKGATE--><script data-tool="b3" data-ver="1.1" data-built="2026-08-09" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+/* ============================================================================
+   SK Gate — version gate, kill switch and first-run identity for the SK tools
+   ----------------------------------------------------------------------------
+   Drop-in, zero dependencies, ES5. Goes in <head> IMMEDIATELY AFTER sk-intro.js:
+
+       <script data-tool="a7" data-ver="1.6" data-built="2026-08-23"
+               data-log="https://script.google.com/macros/s/AKfy.../exec"
+       > ...this file, inlined by build.ps1... [closing script tag]
+
+   NOTE the text above avoids writing a real closing script tag. When this file
+   is inlined, the HTML parser ends the script at the first "</scr"+"ipt"
+   followed by whitespace, "/" or ">" — a space is enough, so even a mention
+   inside a comment silently truncates the whole module. inject-gate.ps1
+   escapes it too, but do not rely on that.
+
+   What it does, in order:
+     1. hides the tool and paints the intro's own background, so nothing of the
+        app is visible or clickable until a verdict exists;
+     2. asks the decision file (numbers only) whether this build may run, while
+        the SK intro plays over it — a 300ms round trip inside a 4.8s animation;
+     3. on first ever run, asks "מה השם שלך? (בעברית)" once per device;
+     4. reveals the tool, or paints one of exactly two block messages;
+     5. reports the open (and any action the tool calls SKGate.use() for).
+
+   SECURITY MODEL — read before changing anything here.
+   The decision file returns NUMBERS ONLY. Every string a user can ever see
+   lives in MSG below, inside the build. A compromised host can therefore do
+   exactly one thing: refuse entry. It cannot inject markup, script, text or a
+   URL into any machine. The rules that keep that true:
+     - JSON.parse only. Never eval / new Function / <script src> / innerHTML.
+     - 2KB cap on the response, enforced before parsing.
+     - Allow-list into a FRESH object. Never Object.assign onto config.
+     - textContent for every render. No HTML from anywhere but this file.
+     - No URL is ever read from the response, and nothing navigates.
+     - The response is never written to storage.
+     - fail-open: no answer, bad answer, or broken JSON => the tool runs.
+       An outage on our side must never stop the team working. Local build-date
+       expiry is the only offline brake, and ?nocheck=1 overrides everything.
+
+   API:  SKGate.ready   -> Promise, resolves true (allowed) / false (blocked)
+         SKGate.use(s)  -> log one meaningful action ("pdf", "xlsx", ...)
+         SKGate.id      -> this device id (8 hex) — the value to block
+         SKGate.who     -> the stored name
+         SKGate.forget() -> clear identity on this device (for testing)
+   ==========================================================================*/
+(function () {
+  'use strict';
+  if (window.SKGate) return;
+
+  /* ---------------------------------------------------------------- config */
+  /* Lives in the vm repo for now because that repo already exists and already
+     has working push credentials. Moving it is a one-line change here plus a
+     re-run of apply-all.ps1 — see README.txt. */
+  var DEFAULT_GATE =
+    'https://raw.githubusercontent.com/skuznitsky-Clearshift/vm/main/gate.json';
+
+  var tag = document.currentScript;
+  var ds  = (tag && tag.dataset) || {};
+
+  var CFG = {
+    tool  : String(ds.tool || '??').slice(0, 8),
+    verS  : String(ds.ver  || '0'),
+    built : String(ds.built || ''),
+    maxAge: parseInt(ds.maxage, 10) || 60,   /* days of offline grace */
+    ttl   : parseInt(ds.ttl, 10) || 24,      /* hours an OK verdict is reused */
+    gate  : String(ds.gate || DEFAULT_GATE),
+    log   : String(ds.log || ''),
+    wait  : parseInt(ds.wait, 10) || 3500    /* ms before giving up on the net */
+  };
+
+  /* "1.6" -> 1006 so that 1.10 sorts above 1.9 */
+  function vnum(s) {
+    var p = String(s).replace(/[^0-9.]/g, '').split('.');
+    return ((parseInt(p[0], 10) || 0) * 1000) + (parseInt(p[1], 10) || 0);
+  }
+  var VER = vnum(CFG.verS);
+
+  /* The only two messages that can ever be shown. The decision file picks one
+     by number; it cannot supply a third. */
+  var MSG = {
+    1: 'הגרסה הזו ישנה - נא להוריד גרסה עדכנית',
+    2: 'אין גישה לממשק - צור קשר עם ספיר'
+  };
+
+  /* The team. A name typed that is not on this list is accepted and marked as
+     new in the log, so adding someone does not require a build. */
+  var TEAM = ['ספיר', 'יובל', 'יוסי', 'יצי', 'אסף', 'גדעון',
+              'דניאל', 'עידו', 'אביהו', 'אנה', 'ישי', 'אודי'];
+
+  /* ------------------------------------------------------- guarded storage */
+  /* In the SharePoint srcdoc iframe every one of these THROWS SecurityError
+     rather than returning null, and an unguarded read kills the whole script. */
+  var storeOK = true;
+  function sget(k) {
+    try { return window.localStorage.getItem(k); }
+    catch (e) { storeOK = false; return null; }
+  }
+  function sset(k, v) {
+    try { window.localStorage.setItem(k, v); return true; }
+    catch (e) { storeOK = false; return false; }
+  }
+  function sdel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+  /* All tools share one file:// storage bucket (verified: Chrome reports
+     origin "file://" for every path), so keys must be namespaced — and the
+     identity is therefore asked once per device for ALL tools, not per tool. */
+  var K_ID = 'sk.iid', K_WHO = 'sk.who', K_OK = 'sk.gateok';
+
+  function newId() {
+    var a = new Uint8Array(4), s = '', i;
+    try { window.crypto.getRandomValues(a); }
+    catch (e) { for (i = 0; i < 4; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (i = 0; i < 4; i++) s += ('0' + a[i].toString(16)).slice(-2);
+    return s;
+  }
+
+  /* A device with nowhere to keep an id is not a device we can count. In the
+     SharePoint srcdoc iframe every storage call throws, so a fresh random id
+     per page load would report ten "devices" for ten opens and bury the real
+     ones in noise. Collapse them all onto one reserved id instead: the log
+     still shows the visit, and it shows honestly that we cannot tell who. */
+  var NOSTORE = '00000000';
+  var iid = sget(K_ID);
+  if (!storeOK) {
+    iid = NOSTORE;
+  } else if (!iid || !/^[0-9a-f]{8}$/.test(iid)) {
+    iid = newId();
+    if (!sset(K_ID, iid)) { iid = NOSTORE; }
+  }
+  var who = sget(K_WHO) || '';
+
+  /* Where is this copy running from? This is the field that tells you who is
+     about to get stuck on an old build. */
+  function srcKind() {
+    try {
+      if (location.protocol !== 'file:') return 'web';
+      var p = decodeURIComponent(location.pathname);
+      return p.indexOf('ClearShift Tools') >= 0 ? 'shared' : 'local';
+    } catch (e) { return '?'; }
+  }
+
+  /* ------------------------------------------------------------------ chrome */
+  var HIDE_ID = 'skg-hide';
+  var CSS = [
+    /* keep the app invisible AND unclickable until a verdict exists. Not
+       display:none — layout still has to happen so the app can measure itself. */
+    'html.skg-wait{background:#050818}',
+    'html.skg-wait body>*:not(.skg):not(.ski){visibility:hidden!important;pointer-events:none!important}',
+    '.skg{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;',
+    '  background:radial-gradient(100% 80% at 50% 42%,#0A1130 0%,#050818 40%,#010206 72%,#000 100%);',
+    '  font-family:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;',
+    '  direction:rtl;color:#DCE6FF;-webkit-font-smoothing:antialiased}',
+    '.skg.gone{opacity:0;transition:opacity .3s ease;pointer-events:none}',
+    '.skg-box{width:min(92vw,430px);text-align:center;padding:0 20px}',
+    '.skg-rule{height:1px;margin:0 auto 22px;width:min(58vmin,260px);',
+    '  background:linear-gradient(90deg,transparent,rgba(138,169,255,.55),transparent)}',
+    '.skg-h{font-size:19px;font-weight:640;letter-spacing:-.01em;color:#F2F6FF;margin:0 0 10px}',
+    '.skg-p{font-size:14.5px;line-height:1.65;color:#93A8D6;margin:0}',
+    '.skg-p.big{font-size:16px;color:#DCE6FF}',
+    '.skg-f{margin-top:26px;font-size:11.5px;letter-spacing:.06em;color:#4C5F8C}',
+    '.skg-row{margin-top:18px;display:flex;gap:8px;justify-content:center}',
+    '.skg-in{flex:1;min-width:0;padding:11px 13px;border-radius:9px;text-align:right;',
+    '  background:rgba(255,255,255,.05);border:1px solid rgba(138,169,255,.28);',
+    '  color:#F2F6FF;font:inherit;font-size:15px;outline:none}',
+    '.skg-in:focus{border-color:#2F55E8;background:rgba(47,85,232,.12)}',
+    '.skg-b{padding:11px 20px;border-radius:9px;border:0;cursor:pointer;font:inherit;',
+    '  font-size:14.5px;font-weight:640;background:#2F55E8;color:#fff}',
+    '.skg-b:hover{background:#4468F5}',
+    '.skg-err{margin-top:9px;font-size:12.5px;color:#E0796F;min-height:16px}',
+    '.skg-dots{margin-top:14px;font-size:12.5px;color:#4C5F8C;letter-spacing:.08em}',
+    '@media (prefers-reduced-motion:reduce){.skg,.skg *{transition:none!important}}'
+  ].join('\n');
+
+  var st = document.createElement('style');
+  st.id = HIDE_ID;
+  st.textContent = CSS;
+  (document.head || document.documentElement).appendChild(st);
+  document.documentElement.classList.add('skg-wait');
+
+  var cover = null;
+  function mkCover() {
+    if (cover) return cover;
+    cover = document.createElement('div');
+    cover.className = 'skg';
+    cover.style.opacity = '0';
+    /* invisible but still on top: without this it would swallow the click that
+       skips the intro */
+    cover.style.pointerEvents = 'none';
+    var box = document.createElement('div');
+    box.className = 'skg-box';
+    cover.appendChild(box);
+    cover._box = box;
+    (document.body || document.documentElement).appendChild(cover);
+    return cover;
+  }
+  /* build a panel out of textContent only — never innerHTML, anywhere */
+  function paint(parts) {
+    var c = mkCover(), box = c._box, i, p, el;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var rule = document.createElement('div'); rule.className = 'skg-rule';
+    box.appendChild(rule);
+    for (i = 0; i < parts.length; i++) {
+      p = parts[i];
+      el = document.createElement(p.t || 'div');
+      if (p.c) el.className = p.c;
+      if (p.x != null) el.textContent = p.x;
+      if (p.f) p.f(el);
+      box.appendChild(el);
+    }
+    c.style.opacity = '1';
+    c.style.pointerEvents = 'auto';
+    return box;
+  }
+  function reveal() {
+    document.documentElement.classList.remove('skg-wait');
+    if (cover) {
+      cover.classList.add('gone');
+      setTimeout(function () { if (cover && cover.parentNode) cover.parentNode.removeChild(cover); }, 320);
+    }
+  }
+
+  /* --------------------------------------------------------------- telemetry */
+  /* An <img> beacon, deliberately: an image request is not subject to CORS at
+     all, so the log endpoint needs no permissive headers and we never read a
+     response. Nothing comes back into the page. */
+  function ping(ev, label) {
+    if (!CFG.log) return;
+    try {
+      var q = '?ev=' + encodeURIComponent(ev) +
+              '&tool=' + encodeURIComponent(CFG.tool) +
+              '&ver=' + encodeURIComponent(CFG.verS) +
+              '&iid=' + encodeURIComponent(iid) +
+              '&who=' + encodeURIComponent(who) +
+              '&src=' + encodeURIComponent(srcKind()) +
+              (label ? '&x=' + encodeURIComponent(String(label).slice(0, 40)) : '') +
+              '&t=' + (new Date()).getTime();
+      var im = new Image();
+      im.referrerPolicy = 'no-referrer';
+      im.src = CFG.log + q;
+    } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------------- decision */
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+
+  /* Rebuild a known-shape object from the response. Nothing from the wire is
+     kept by reference, merged, or trusted for its type. */
+  function sanitize(txt) {
+    var o = JSON.parse(txt), out = { all: 0, msg: 1, min: 0, k: [], dev: [] }, t, i, n;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (o.all === 2) out.all = 2;
+    if (o.msg === 2) out.msg = 2;
+    if (o.tools && typeof o.tools === 'object' && has(o.tools, CFG.tool)) {
+      t = o.tools[CFG.tool];
+      if (t && typeof t === 'object' && !Array.isArray(t)) {
+        if (typeof t.min === 'number' && isFinite(t.min)) out.min = t.min | 0;
+        if (Array.isArray(t.k)) {
+          for (i = 0; i < t.k.length && out.k.length < 60; i++) {
+            n = t.k[i];
+            if (typeof n === 'number' && isFinite(n)) out.k.push(n | 0);
+          }
+        }
+      }
+    }
+    if (Array.isArray(o.dev)) {
+      for (i = 0; i < o.dev.length && out.dev.length < 800; i++) {
+        if (typeof o.dev[i] === 'string' && /^[0-9a-f]{8}$/.test(o.dev[i])) out.dev.push(o.dev[i]);
+      }
+    }
+    return out;
+  }
+
+  function verdictFrom(g) {
+    if (g.dev.indexOf(iid) >= 0) return { ok: false, code: 2 };   /* this device */
+    if (g.all === 2)             return { ok: false, code: g.msg }; /* everything */
+    if (VER > 0 && g.min && VER < g.min) return { ok: false, code: 1 };
+    if (VER > 0 && g.k.indexOf(VER) >= 0) return { ok: false, code: 1 };
+    return { ok: true, code: 0 };
+  }
+
+  /* offline brake: only the build date, and only after the grace window */
+  function localVerdict() {
+    var last = sget(K_OK), now = (new Date()).getTime(), d, age;
+    if (last && /^[0-9]{1,15}$/.test(last) &&
+        (now - parseInt(last, 10)) < CFG.ttl * 3600e3) return { ok: true, code: 0 };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(CFG.built)) {
+      d = Date.parse(CFG.built + 'T00:00:00');
+      if (isFinite(d)) {
+        age = (now - d) / 86400e3;
+        if (age > CFG.maxAge) return { ok: false, code: 1 };
+      }
+    }
+    return { ok: true, code: 0 };   /* fail-open */
+  }
+
+  function ask() {
+    return new Promise(function (res) {
+      if (/[?&]nocheck=1\b/.test(location.search)) return res({ ok: true, code: 0 });
+      if (!CFG.gate || !window.fetch) return res(localVerdict());
+
+      var ctl = null, killed = false;
+      try { ctl = new AbortController(); } catch (e) {}
+      var giveUp = setTimeout(function () {
+        killed = true;
+        try { if (ctl) ctl.abort(); } catch (e) {}
+        res(localVerdict());
+      }, CFG.wait);
+
+      var url = CFG.gate + (CFG.gate.indexOf('?') < 0 ? '?' : '&') +
+                't=' + (new Date()).getTime();
+      var opt = { cache: 'no-store', redirect: 'follow', referrerPolicy: 'no-referrer' };
+      if (ctl) opt.signal = ctl.signal;
+
+      fetch(url, opt).then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.text();
+      }).then(function (txt) {
+        if (killed) return;
+        clearTimeout(giveUp);
+        if (txt.length > 2048) throw new Error('too big');   /* cap before parse */
+        var g = sanitize(txt);
+        if (!g) throw new Error('shape');
+        var v = verdictFrom(g);
+        if (v.ok) sset(K_OK, String((new Date()).getTime()));
+        res(v);
+      })['catch'](function () {
+        if (killed) return;
+        clearTimeout(giveUp);
+        res(localVerdict());   /* unreachable, 404, garbage -> fail open */
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------------- intro */
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, false);
+    } else { fn(); }
+  }
+
+  /* Resolves when the SK intro is done — or straight away when it is not
+     playing at all. data-once="session" makes sk-intro skip play() entirely,
+     and in that case it never fires sk-intro:done, so waiting on the event
+     alone would hang the gate for its whole safety timeout. */
+  function introDone() {
+    return new Promise(function (res) {
+      var settled = false;
+      function fin() { if (!settled) { settled = true; res(); } }
+      document.addEventListener('sk-intro:done', fin, false);
+      if (!window.SKIntro) { onReady(fin); return; }
+      onReady(function () {
+        setTimeout(function () { if (!document.querySelector('.ski')) fin(); }, 150);
+      });
+      setTimeout(fin, 12000);
+    });
+  }
+
+  /* -------------------------------------------------------------- enrollment */
+  function enroll() {
+    return new Promise(function (res) {
+      if (!storeOK) return res();          /* nowhere to keep it — don't nag */
+      if (who) return res();
+
+      var listId = 'skg-team';
+      var box = paint([
+        { c: 'skg-h', x: 'מה השם שלך? (בעברית)' },
+        { c: 'skg-p', x: 'פעם אחת בלבד, לכל הכלים על המכשיר הזה.' }
+      ]);
+
+      var row = document.createElement('div'); row.className = 'skg-row';
+      var inp = document.createElement('input');
+      inp.className = 'skg-in';
+      inp.type = 'text';
+      inp.setAttribute('list', listId);
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      inp.maxLength = 40;
+      inp.placeholder = 'התחל להקליד…';
+
+      var dl = document.createElement('datalist');
+      dl.id = listId;
+      for (var i = 0; i < TEAM.length; i++) {
+        var op = document.createElement('option');
+        op.value = TEAM[i];
+        dl.appendChild(op);
+      }
+
+      var btn = document.createElement('button');
+      btn.className = 'skg-b';
+      btn.type = 'button';
+      btn.textContent = 'המשך';
+
+      row.appendChild(inp); row.appendChild(btn);
+      box.appendChild(row); box.appendChild(dl);
+
+      var err = document.createElement('div'); err.className = 'skg-err';
+      box.appendChild(err);
+
+      var foot = document.createElement('div');
+      foot.className = 'skg-f';
+      foot.textContent = 'מזהה מכשיר ' + iid;
+      box.appendChild(foot);
+
+      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+
+      function go() {
+        var v = inp.value.replace(/\s+/g, ' ').trim();
+        /* Hebrew letters, space, hyphen, geresh. Own-goal injection is as easy
+           as any other, so the user's own input is validated too. */
+        if (v.length < 2 || v.length > 40 || !/^[א-ת][א-ת '׳-]*$/.test(v)) {
+          err.textContent = 'נא להקליד שם בעברית';
+          try { inp.focus(); } catch (e) {}
+          return;
+        }
+        who = v;
+        sset(K_WHO, who);
+        ping('join');
+        res();
+      }
+      btn.addEventListener('click', go, false);
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); go(); }
+      }, false);
+    });
+  }
+
+  /* Make the device id readable off a screenshot: the build stamp already sits
+     in the top bar of every tool, so the id goes next to it. */
+  function stampId() {
+    try {
+      var e = document.querySelector('.ver');
+      if (e && e.textContent.indexOf(iid) < 0) {
+        e.textContent = e.textContent + ' · ' + iid;
+        if (e.title) e.title = e.title + ' — מזהה מכשיר ' + iid;
+      }
+    } catch (x) {}
+  }
+
+  /* -------------------------------------------------------------------- flow */
+  var resolveReady;
+  var ready = new Promise(function (r) { resolveReady = r; });
+
+  var asking = ask();          /* fires immediately, in parallel with the intro */
+  var waiting = introDone();
+
+  /* Dead-man switch. If 20s pass with nothing painted and nothing decided, the
+     gate is what is broken — let the person work. It fires only in limbo: a
+     real block has painted a panel by then and is left alone. */
+  setTimeout(function () {
+    if (cover && cover._box && cover._box.firstChild) return;
+    document.documentElement.classList.remove('skg-wait');
+    if (cover && cover.parentNode) cover.parentNode.removeChild(cover);
+  }, 20000);
+
+  /* if the answer is late, say so rather than showing a frozen logo */
+  var slow = setTimeout(function () {
+    if (!document.querySelector('.skg-dots')) {
+      var box = mkCover()._box;
+      if (!box.firstChild) {
+        paint([{ c: 'skg-dots', x: 'מאמת גרסה…' }]);
+      }
+    }
+  }, 5200);
+
+  Promise.all([asking, waiting]).then(function (r) {
+    clearTimeout(slow);
+    var v = r[0];
+
+    if (!v.ok) {
+      ping('block');
+      paint([
+        { c: 'skg-h', x: 'הממשק אינו זמין' },
+        { c: 'skg-p big', x: MSG[v.code] || MSG[2] },
+        { c: 'skg-f', x: CFG.tool + ' · ' + CFG.verS + ' · מזהה מכשיר ' + iid }
+      ]);
+      resolveReady(false);
+      return;
+    }
+
+    enroll().then(function () {
+      stampId();
+      ping('open');
+      reveal();
+      resolveReady(true);
+    });
+  })['catch'](function () {
+    /* the gate itself must never be what breaks a tool */
+    clearTimeout(slow);
+    reveal();
+    resolveReady(true);
+  });
+
+  window.SKGate = {
+    ready : ready,
+    use   : function (label) { ping('use', label); },
+    get id()  { return iid; },
+    get who() { return who; },
+    forget: function () { sdel(K_WHO); sdel(K_ID); sdel(K_OK); },
+    config: CFG
+  };
+})();
+
+</script><!--/SKGATE-->
+
+</head>
+<body>
+
+<div id="dropScreen">
+  <div class="dropzone" id="dz" tabindex="0" role="button" aria-label="בחירת קובץ אקסל">
+    <div class="brand-big">
+      <img src="data:image/png;base64,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" alt="Clearshift">
+    </div>
+    <h1>תמונת פעילות לקוח</h1>
+    <p>גררו לכאן קובץ <b>Order Associated View</b> (.xlsx) מ־Dynamics,<br>או לחצו לבחירת קובץ</p>
+    <button class="btn" type="button">בחירת קובץ…</button>
+    <div class="hint">הקובץ מעובד מקומית במחשב שלך בלבד — שום נתון לא נשלח החוצה</div>
+    <div class="ver">v1.1 · 09.08.2026</div>
+    <div class="err" id="dropErr"></div>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx" hidden>
+</div>
+
+<div class="wrap" id="dash">
+  <header>
+    <div class="topbar">
+      <div>
+        <div class="brand">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKUAAAAmCAYAAAClD1usAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAXDSURBVHhe7ZvBkRw3DEUVgk5zdgjOwCk4BIfgqknAIfg4R4egEBSCjj4qBGdg118tXNhHECC5vbOz1Tw81ahJECD4m2Szez9drrdPi/x8ud5+v1xvf12ut68Bf1yut18Cu80mpblQ8NOzCP+5XG//TiCbLdDNEM2FDhKjZj+KbRa1scW5SWkuBGgZprhey5+X6+1z4GuzSUUp0RwxO/b49rwvpd/NyWkuPCNBSjQU0tFob7qFuXlBc+GOgjQkTO1ZGcfmpDQX7ixIQz73HnPzBC+8xUPNKHr4YTybE+L/oyWUQrk3+7ho80KUOuCmSO6NnvabIDfnwn48wixp7Kfxk2M/9A6b4ngvNGM3gW7Og/14y0PyWXRE1AS6OQ/2g8J4b/YSfmL0jwRAUbw3vzHQzXnQPzqGoSjeG52XNsEehA7p1b5xlkN7PTdYn1dWIm/fa0O5VD1+W/tlJs/65xFFqU40wXbQyYGSFL2J0jUeyqttX+cMD1Z8kF3ZtzO3PL6TSLPvbIcnGvvBu2AVDvgq7HAPLfNZIgz1z2z4UDfq6yOjsWFOWKeC9sxbNfaKwepqItTY6Vozg9LxETCYFdjhCHWKdj18QrYof8A6Fbz5uQKxfcutLd+23PMljR+bJ+j4CBjYCtWSqiWbScr41dluUf6AdSqUc81whp/hooflRmzPlPVocAR0ukITKNBdShuJVMu0T5zghnxGlBoIW2aEflef2dngcWuja5mt4uSAq7765G8qX9/HJqz/XBIjUWr28rbykcWnNn1efZn+z/bt77LYb9bTuMn3/3Xp+AjodIXqSCh6qGGieoyIsvqbJJVR7KLaVwkNFkXDmUb9Y1vmb/QvAnwOI1H2iOITzLnfp0ei9PhvZllGvtLxEdDJCtkdG/n4HtTpwQGlKEe3BtFX82y7B31WgyrsplvxMSNK2hqs41ezmfh5nTyJkud2EUx+Bp3MUgks+ngkSmIPDiptWZ7BWGds/Uw2Mqgag6jvPfyx2qwoBbcMLJ8R5fRMWTVYPXQQ2s/iOxsRxUthZVA43pbLqNCyZXse2go/eLL3ezTbJ3EpFj6vUZ+E/Kktm2WieorP/Min+fdLcCRKv/+u4hMsr0SpNq39bE8pfCyfew0aDGwEtjFLtXRH8c4ctlNY1TLHeDQ7+nIejfRgu95v1Ce/Z8vqKR7GSKJ+sQ7LeaOzvBJlb3JhPfpJ3+isCFKwnRlGfEbxjtgZmSijGYObfm74m6Q67ElcMxjbrUSpa2xP9Pa7nB09I6LM8iJof3dRzgwyYVujjP5VYxRv07GELPksG8Hb2/6cwo1YFWUkcEOzJveC4sOLslqOlPhMtHQ6SrRcRUT7vqZjCVnyWTaC2SsvI2KkneAYiJ4ohYTXmzEFtzMfWpTV+aBPPMsMOh2BSaygvWJinR5Z8llmbet6D8sZP3oQmrmsHsteI0phszLtDD+5RPXYHmOkWGh/F1HOCFKw3KDTipW/+Y5miZGlX2TJ555y5msatlsdF71WlEbvoN/H/iFFOStIwToGnWasCFLwpb61NSLMLPnR4I2KI2u3Ko8GddSvwfERVhb1i/ZZfIL2R4lSN+8LDdAgovedHOsZrNdDs9KKIEWUhB5885IlP9qvCt0ESrKhpVF2/mZmu/bQYTc9c7gqSvPNeNi+MJtHFqXQDaX62gKV7757ghSsmzn1qL3Rh5qMaLbs4RNUJZ/lFSb46CORjFVRsl4Pv89+JFHSD/lOA08mSMH6But5JKSRJXYEzbLcA/aYEWW0Vckw8Yy+MzfeWpTe/pFEGcXi+ZsGRiXI7AGAdhpgzYyrS3WFlsZMRFy+OaNF+2k79mJf2C63IPLDNz7Clid/zT8dR4LufW/A+Il8UdAcz2j82C6PBv3KJHt/Hsp38tWzAn15vrCywe/0SHRAa9hbDCbmrVESzK/RG9gZ1AbbrWZ7b1PVXcXn2ciE8Igw/qfx+g+zudjQumLKxwAAAABJRU5ErkJggg==" alt="Clearshift">
+        </div>
+        <div class="eyebrow">תמונת פעילות לקוח</div>
+        <h1 id="custName"></h1>
+      </div>
+      <div class="controls">
+        <label class="rate-ctl">₪/$ <input type="number" id="rateUsd" step="0.01" min="1" max="10"></label>
+        <label class="rate-ctl">₪/€ <input type="number" id="rateEur" step="0.01" min="1" max="10"></label>
+        <button class="btn ghost" type="button" id="loadAnother">📁 טעינת קובץ אחר</button>
+        <span class="ver">v1.1 · 09.08.2026</span>
+      </div>
+    </div>
+    <div class="chips" id="headChips"></div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <h2 id="volTitle">נפח מסחר חודשי</h2>
+    <p class="desc" id="volDesc">סכום העסקאות שבוצעו בכל חודש · ריחוף על עמודה מציג פירוט</p>
+    <div class="chart-holder" id="volChart"></div>
+  </section>
+
+  <section class="card" id="yoyCard" style="display:none">
+    <h2>מגמת פעילות שנתית</h2>
+    <p class="desc">השוואת שנים קלנדריות · השנה הנוכחית עלולה להיות חלקית</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>שנה</th><th>נפח מסחר</th><th>שינוי נפח</th><th>עסקאות</th><th>שינוי עסקאות</th></tr></thead>
+        <tbody id="yoyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section class="card forecast">
+      <h2>צפי פעילות — הרבעון הקרוב</h2>
+      <p class="desc" id="fcPeriod"></p>
+      <div class="big" id="fcVol"></div>
+      <div class="f-grid" id="fcGrid"></div>
+      <div id="cadence"></div>
+      <div class="f-note">התחזית משוקללת: 60% ממוצע שלושת החודשים האחרונים, 40% ממוצע כל התקופה. אינה מהווה התחייבות.</div>
+    </section>
+
+    <section class="card">
+      <h2>הכנסות בפועל ($, נטו)</h2>
+      <p class="desc">עמלות שנגבו + רכישות שוברים (לפני מע״מ), לפי חודש · 🎟️ = חודש עם רכישת שובר</p>
+      <div class="chart-holder" id="feeChart"></div>
+    </section>
+  </div>
+
+  <div class="two-col">
+    <section class="card">
+      <h2>שובר (Voucher)</h2>
+      <p class="desc">זיהוי רכישות Prepaid Voucher ומעקב יתרת עמלות · ערכים בדולר, לפני מע״מ</p>
+      <div id="voucherBody"></div>
+    </section>
+
+    <section class="card">
+      <h2>המלצת שובר ללקוח</h2>
+      <p class="desc" id="recDesc"></p>
+      <div id="recBody"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>מה חשוב לדעת על הלקוח</h2>
+    <p class="desc">תובנות שחושבו אוטומטית מהנתונים</p>
+    <ul class="insights" id="insights"></ul>
+  </section>
+
+  <section class="card">
+    <h2>כל העסקאות</h2>
+    <p class="desc" id="tblDesc"></p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>תאריך</th><th>מס׳ הזמנה</th><th>סכום</th><th>עמלה ($)</th><th>עמלה (₪)</th><th>מחירון</th><th>סטטוס</th>
+        </tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   ClearShift Customer Activity — standalone desktop dashboard
+   Parses a Dynamics CRM "Order Associated View" .xlsx entirely
+   in the browser (no libraries, no network).
+
+   Pricing & voucher model (per sales team, 2026-07):
+   - Fee per transfer: BUSINESS 0.45% / LARGE BUSINESS 0.30% of
+     the transfer's value, or ₪180 minimum — the higher of the
+     two — plus 18% VAT. (Observed min fee 212.40 = 180 × 1.18,
+     so the Total Amount column INCLUDES VAT.)
+   - A voucher is a prepaid FEE balance, denominated in USD.
+     The customer pays the voucher cost + VAT; the percentage
+     bonus is added to the pre-VAT amount and fees are deducted
+     from that balance. While a balance remains, per-order fees
+     show 0.
+   - Tracks (USD, pre-VAT): new customer 1,000+15%;
+     BUSINESS 2,000+50%; LARGE BUSINESS 2,500+20% / 4,000+35% /
+     15,000+50%. Above the top track any amount keeps the 50%
+     key. A voucher may be "stretched" above its track's base
+     amount (same bonus key) to cover the customer's full
+     projected annual cycle — that is the preferred sale.
+   ============================================================ */
+
+const VAT = 1.18;
+const MIN_FEE_NET_ILS = 180;         /* minimum fee per transfer, pre-VAT */
+const LARGE_THRESHOLD_USD = 1e6;     /* annual cycle from which LARGE BUSINESS pricing applies */
+const TRACKS = [                     /* USD, pre-VAT, ascending */
+  {label:'לקוח חדש',       pay: 1000, bonus:15, pricing:0.45},
+  {label:'BUSINESS',        pay: 2000, bonus:50, pricing:0.45},
+  {label:'LARGE BUSINESS',  pay: 2500, bonus:20, pricing:0.30},
+  {label:'LARGE BUSINESS',  pay: 4000, bonus:35, pricing:0.30},
+  {label:'LARGE BUSINESS',  pay:15000, bonus:50, pricing:0.30}
+];
+/* Legacy price lists (RETAIL 0.43%, CORPORATE 0.25%) are no longer sold
+   but existing customers may still be on them — recognize them so historical
+   calcs are correct, and flag them for migration. */
+const LEGACY_PLS = /retail|corporate|corperate/i;
+const pricingOf = pl => {
+  const s = (pl || '').toLowerCase();
+  if (/large/.test(s))     return 0.30;
+  if (/corp/.test(s))      return 0.25;   /* legacy CORPORATE */
+  if (/retail/.test(s))    return 0.43;   /* legacy RETAIL */
+  return 0.45;                            /* BUSINESS default */
+};
+const VOUCHER_RE = /prepaid\s+voucher|voucher\s+purchase|voucher|שובר/i;
+const DEF_USD = 3.20, DEF_EUR = 3.90;
+
+/* ---------- zip / xlsx parsing ---------- */
+function readZip(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let i = u8.length - 22;
+  while (i >= 0 && dv.getUint32(i, true) !== 0x06054b50) i--;
+  if (i < 0) throw new Error('הקובץ אינו קובץ xlsx תקין');
+  const count = dv.getUint16(i + 10, true);
+  let off = dv.getUint32(i + 16, true);
+  const files = {};
+  for (let k = 0; k < count; k++){
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const csize  = dv.getUint32(off + 20, true);
+    const nlen   = dv.getUint16(off + 28, true);
+    const elen   = dv.getUint16(off + 30, true);
+    const clen   = dv.getUint16(off + 32, true);
+    const lho    = dv.getUint32(off + 42, true);
+    const name   = new TextDecoder().decode(u8.subarray(off + 46, off + 46 + nlen));
+    const lnlen  = dv.getUint16(lho + 26, true);
+    const lelen  = dv.getUint16(lho + 28, true);
+    const start  = lho + 30 + lnlen + lelen;
+    files[name] = {method, bytes: u8.subarray(start, start + csize)};
+    off += 46 + nlen + elen + clen;
+  }
+  return files;
+}
+async function entryText(f){
+  if (!f) return null;
+  if (f.method === 0) return new TextDecoder().decode(f.bytes);
+  const stream = new Blob([f.bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return await new Response(stream).text();
+}
+function cellText(c){
+  const ts = c.getElementsByTagNameNS('*','t');
+  let s = '';
+  for (const t of ts) s += t.textContent;
+  return s;
+}
+function parseSheet(xml, shared){
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const rows = doc.getElementsByTagNameNS('*','row');
+  const grid = {};
+  for (const row of rows){
+    for (const c of row.getElementsByTagNameNS('*','c')){
+      const ref = c.getAttribute('r') || '';
+      const col = ref.replace(/\d+/g,''), rn = +ref.replace(/\D+/g,'');
+      if (!col || !rn) continue;
+      const t = c.getAttribute('t');
+      let v = '';
+      if (t === 'inlineStr') v = cellText(c);
+      else {
+        const vEl = c.getElementsByTagNameNS('*','v')[0];
+        if (vEl){
+          v = vEl.textContent;
+          if (t === 's' && shared) v = shared[+v] ?? '';
+        }
+      }
+      (grid[rn] = grid[rn] || {})[col] = v;
+    }
+  }
+  return grid;
+}
+function oaToIso(serial){
+  const ms = Math.round((serial - 25569) * 86400000);
+  const dt = new Date(ms);
+  return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth()+1).padStart(2,'0') + '-' + String(dt.getUTCDate()).padStart(2,'0');
+}
+async function parseXlsx(buf, fileName, lastModified){
+  const files = readZip(buf);
+  let shared = null;
+  const ssXml = await entryText(files['xl/sharedStrings.xml']);
+  if (ssXml){
+    const doc = new DOMParser().parseFromString(ssXml, 'application/xml');
+    shared = [...doc.getElementsByTagNameNS('*','si')].map(cellText);
+  }
+  const sheetNames = Object.keys(files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n));
+  let grid = null, hdr = null;
+  for (const sn of sheetNames){
+    const g = parseSheet(await entryText(files[sn]), shared);
+    if (!g[1]) continue;
+    const h = {};
+    for (const [col, val] of Object.entries(g[1])) h[String(val).trim()] = col;
+    if (h['Name'] && h['Created On']) { grid = g; hdr = h; break; }
+  }
+  if (!grid) throw new Error('לא נמצא גיליון עם העמודות Name ו־Created On.\nודאו שזה ייצוא "Order Associated View" מ־Dynamics.');
+
+  const get = (r, colName) => { const c = hdr[colName]; return c ? (grid[r][c] ?? '') : ''; };
+  const orders = [];
+  const rowNums = Object.keys(grid).map(Number).filter(n => n >= 2).sort((a,b)=>a-b);
+  for (const r of rowNums){
+    const name = String(get(r, 'Name'));
+    if (!name.trim()) continue;
+    const m = name.match(/#([\dA-Za-z-]+)\s*-\s*(.+?)\s*-\s*([\d,]+(?:\.\d+)?)\s*([A-Z]{3})/);
+    const vm = !m && name.match(/#([\dA-Za-z-]+)\s*-/);
+    const createdRaw = String(get(r, 'Created On')).trim();
+    let dateIso = null;
+    if (/^\d+(\.\d+)?$/.test(createdRaw)) dateIso = oaToIso(parseFloat(createdRaw));
+    else if (createdRaw){ const p = new Date(createdRaw); if (!isNaN(p)) dateIso = p.toISOString().slice(0,10); }
+    if (!dateIso) continue;
+    orders.push({
+      num: m ? m[1] : (vm ? vm[1] : ''),
+      customer: m ? m[2].replace(/''/g,'״') : '',
+      amount: m ? parseFloat(m[3].replace(/,/g,'')) : null,
+      currency: m ? m[4] : '',
+      date: dateIso,
+      fee: parseFloat(String(get(r, 'Total Amount')).replace(/,/g,'')) || 0,
+      source: String(get(r, 'Order Source')),
+      status: String(get(r, 'Order Status')),
+      priceList: String(get(r, 'Price List')),
+      raw: name
+    });
+  }
+  if (!orders.length) throw new Error('לא נמצאו עסקאות בקובץ.');
+
+  const cc = {};
+  orders.forEach(o => { if (o.customer) cc[o.customer] = (cc[o.customer]||0)+1; });
+  const customer = Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'לקוח';
+
+  let asOf = null;
+  const fm = fileName.match(/(\d{2})-(\d{2})-(\d{4})/);
+  if (fm) asOf = fm[3] + '-' + fm[2] + '-' + fm[1];
+  else asOf = new Date(lastModified).toISOString().slice(0,10);
+  const maxDate = orders.reduce((mx,o)=> o.date > mx ? o.date : mx, orders[0].date);
+  if (asOf < maxDate) asOf = maxDate;
+
+  return { orders, meta: { customer, asOf, sourceFile: fileName } };
+}
+
+/* ---------- formatting helpers ---------- */
+const DAY = 86400000;
+const d = s => new Date(s + 'T12:00:00');
+const nfIL = new Intl.NumberFormat('he-IL', {maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2});
+const SYM = {USD:'$', EUR:'€', GBP:'£', ILS:'₪', CHF:'₣', JPY:'¥', CAD:'C$', AUD:'A$'};
+const sym = c => SYM[c] ?? (c + ' ');
+const ils = v => '₪' + nfIL.format(Math.round(v));
+const usd$ = v => '$' + nfIL.format(Math.round(v));
+const MON = ['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'];
+const fmtD = s => { const t = d(s); return String(t.getDate()).padStart(2,'0') + '.' + String(t.getMonth()+1).padStart(2,'0') + '.' + t.getFullYear(); };
+const isoOf = t => t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+const monLbl = key => { const [y,m] = key.split('-'); return MON[+m-1] + ' ' + y.slice(2); };
+const median = a => { const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const pctl = (a,q) => { const s=[...a].sort((x,y)=>x-y); return s[Math.min(s.length-1, Math.floor(q*s.length))]; };
+const topShare = arr => {
+  const c = {}; arr.forEach(v => { if(v) c[v] = (c[v]||0)+1; });
+  const e = Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+  return e ? {name:e[0], share:e[1]/arr.length} : {name:'—', share:0};
+};
+const CANCELED = new Set(['Canceled','Cancelled','Rejected','Failed','Expired','Reversed']);
+
+/* ---------- charts ---------- */
+function barChart(holderId, data, opts){
+  const holder = document.getElementById(holderId);
+  const tipId = holderId + 'Tip';
+  holder.innerHTML = '<div class="tooltip" id="' + tipId + '"></div>';
+  const padL = 56, padR = 10, padT = 28, padB = opts.quarters ? 72 : 34;
+  const W = 940, H = 236 + padB;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const max = Math.max(...data.map(b=>b.v)) * 1.1 || 1;
+  const bw = iw / data.length;
+  const barW = Math.min(46, bw * 0.62);
+  const maxIdx = data.reduce((mi,b,i)=> b.v > data[mi].v ? i : mi, 0);
+  const every = Math.ceil(data.length / 16);
+  let g = '';
+  for (let i=1;i<=4;i++){
+    const v = max*i/4, y = padT + ih - ih*i/4;
+    g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+y+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/>';
+    g += '<text class="axis-t" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+opts.tick(v)+'</text>';
+  }
+  g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+(padT+ih)+'" y2="'+(padT+ih)+'" stroke="var(--baseline)" stroke-width="1"/>';
+  data.forEach((b,i)=>{
+    const x = padL + bw*i + (bw-barW)/2;
+    const h = Math.max(b.v > 0 ? 2 : 0, ih * b.v/max);
+    const y = padT + ih - h;
+    g += '<rect class="bar" data-i="'+i+'" x="'+x+'" y="'+y+'" width="'+barW+'" height="'+h+'" rx="4" ry="4" fill="'+opts.color+'"/>';
+    if (h > 4) g += '<rect x="'+x+'" y="'+(padT+ih-1)+'" width="'+barW+'" height="1" fill="'+opts.color+'"/>';
+    const showLabel = opts.labelAll ? (i % every === 0 || i === data.length-1) : (i === maxIdx || i === data.length-1);
+    if (showLabel && b.v > 0)
+      g += '<text class="bar-label" x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle">'+opts.tick(b.v)+(b.mark?' '+b.mark:'')+'</text>';
+    if (i % every === 0)
+      g += '<text class="axis-t" x="'+(x+barW/2)+'" y="'+(padT+ih+16)+'" text-anchor="middle">'+monLbl(b.key)+'</text>';
+  });
+  /* quarter brackets below the month labels: "25A · $180K" (sums in USD) */
+  if (opts.quarters){
+    const QL = ['A','B','C','D'];
+    const qTick = opts.quarterTick || opts.tick;
+    const groups = [];
+    data.forEach((b,i)=>{
+      const [y,m] = b.key.split('-').map(Number);
+      const qk = y + '-' + Math.floor((m-1)/3);
+      let gr = groups[groups.length-1];
+      if (!gr || gr.qk !== qk){ gr = {qk, y, q: Math.floor((m-1)/3), i0:i, i1:i, sum:0}; groups.push(gr); }
+      gr.i1 = i; gr.sum += b.v;
+    });
+    const yLine = padT + ih + 28, yText = padT + ih + 46;
+    for (const gr of groups){
+      const x0 = padL + bw*gr.i0 + (bw-barW)/2;
+      const x1 = padL + bw*gr.i1 + (bw+barW)/2;
+      g += '<line x1="'+x0+'" x2="'+x1+'" y1="'+yLine+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+        +  '<line x1="'+x0+'" x2="'+x0+'" y1="'+(yLine-5)+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+        +  '<line x1="'+x1+'" x2="'+x1+'" y1="'+(yLine-5)+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+        +  '<text x="'+((x0+x1)/2)+'" y="'+yText+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--accent-ink)" direction="ltr">'
+        +  String(gr.y).slice(2) + QL[gr.q] + ' · ' + qTick(gr.sum) + '</text>';
+    }
+  }
+  holder.insertAdjacentHTML('beforeend',
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+opts.aria+'">'+g+'</svg>');
+  const tip = document.getElementById(tipId);
+  holder.querySelectorAll('.bar').forEach(r=>{
+    r.addEventListener('mouseenter', ()=>{
+      const b = data[+r.dataset.i];
+      tip.innerHTML = '<b>' + monLbl(b.key) + '</b><br>' + opts.tipHtml(b);
+      tip.style.opacity = 1;
+      const hb = holder.getBoundingClientRect(), rb = r.getBoundingClientRect();
+      const lx = rb.left - hb.left + rb.width/2;
+      tip.style.left = Math.max(80, Math.min(hb.width-80, lx)) + 'px';
+      tip.style.top = (rb.top - hb.top - 8) + 'px';
+      tip.style.transform = 'translate(-50%,-100%)';
+    });
+    r.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+  });
+}
+
+/* ---------- dashboard rendering ---------- */
+let LAST = null;
+
+function render(ORDERS, META){
+  const rUsd = parseFloat(document.getElementById('rateUsd').value) || DEF_USD;
+  const rEur = parseFloat(document.getElementById('rateEur').value) || DEF_EUR;
+  const rate = c => c === 'ILS' ? 1 : (c === 'EUR' ? rEur : rUsd);
+  const usdOfIls = v => v / rUsd;
+  const usdF = v => '$' + nfIL.format(Math.round(v / rUsd));   /* ILS → $ display */
+  const minNetUsd = MIN_FEE_NET_ILS / rUsd;
+
+  const orders = [...ORDERS].sort((a,b)=> a.date < b.date ? -1 : 1);
+  const isVoucher = o => VOUCHER_RE.test(o.raw || '');
+  const voucherOrders = orders.filter(o => isVoucher(o) && !CANCELED.has(o.status));
+  const trades = orders.filter(o => !isVoucher(o));
+  const active = trades.filter(o => !CANCELED.has(o.status));
+  const canceled = trades.filter(o => CANCELED.has(o.status));
+  const base = active.length ? active : trades;
+  const volIls = o => (o.amount != null && o.currency) ? o.amount * rate(o.currency) : 0;
+  const volUsd = o => usdOfIls(volIls(o));
+  /* estimated pre-VAT fee for one transfer at a given pricing % (min ₪180 applies) */
+  const estFeeNetUsd = (o, pct) => { const v = volUsd(o); return v > 0 ? Math.max(v * pct/100, minNetUsd) : 0; };
+
+  /* display currency: dominant trade currency if ≥90%, else ILS equivalent */
+  const curTop = topShare(base.filter(o=>o.currency).map(o=>o.currency));
+  const dispCur = curTop.share >= 0.9 ? curTop.name : 'ILS';
+  const dispRate = rate(dispCur);
+  const S = sym(dispCur);
+  const disp = vIls => S + nfIL.format(Math.round(vIls / dispRate));
+  const dispK = vIls => { const v = vIls / dispRate;
+    return v >= 1e6 ? S + (v/1e6).toFixed(2) + 'M' : (v >= 1000 ? S + Math.round(v/1000) + 'K' : S + Math.round(v)); };
+
+  const asOf = d(META.asOf);
+  const first = d(base[0].date), last = d(base[base.length-1].date);
+  const spanMonths = Math.max(1, (asOf - first) / DAY / 30.44);
+  const tenureYears = spanMonths / 12;
+  const plLast = base[base.length-1].priceList;
+  const curPricing = pricingOf(plLast);
+
+  const months = [];
+  { let y = first.getFullYear(), m = first.getMonth();
+    while (y < asOf.getFullYear() || (y === asOf.getFullYear() && m <= asOf.getMonth())){
+      months.push({key: y + '-' + String(m+1).padStart(2,'0'), vol:0, count:0, fees:0, vPaid:0, estNet:0});
+      m++; if (m === 12){ m = 0; y++; }
+    } }
+  const byKey = Object.fromEntries(months.map(b => [b.key, b]));
+  for (const o of base){
+    const b = byKey[o.date.slice(0,7)];
+    if (!b) continue;
+    b.count++; b.fees += o.fee; b.vol += volIls(o);
+    b.estNet += estFeeNetUsd(o, pricingOf(o.priceList));
+  }
+  for (const v of voucherOrders){
+    const b = byKey[v.date.slice(0,7)];
+    if (b) b.vPaid += v.fee;
+  }
+
+  const totalVolIls = base.reduce((s,o)=>s+volIls(o),0);
+  const feesCharged = base.reduce((s,o)=>s+o.fee,0);
+  const voucherPaid = voucherOrders.reduce((s,o)=>s+o.fee,0);       /* ILS incl. VAT */
+  const voucherPaidNet = voucherPaid / VAT;                          /* ILS ex. VAT — real revenue to the company */
+  const totalRevenue = feesCharged + voucherPaidNet;
+  const sizedOrders = base.filter(o=>volIls(o)>0);
+  const avgSizeIls = sizedOrders.length ? totalVolIls / sizedOrders.length : 0;
+  const avgMonthlyVolIls = totalVolIls / spanMonths;
+
+  /* per-currency native totals for the volume breakdown */
+  const curTotals = {};
+  base.forEach(o => {
+    if (o.currency && o.amount != null){
+      const t = curTotals[o.currency] = curTotals[o.currency] || {sum:0, count:0};
+      t.sum += o.amount; t.count++;
+    }
+  });
+  const curBreakdown = Object.entries(curTotals)
+    .sort((a,b) => b[1].sum * rate(b[0]) - a[1].sum * rate(a[0]))
+    .map(([c,t]) => {
+      const v = t.sum;
+      const s = sym(c);
+      const short = v >= 1e6 ? s + (v/1e6).toFixed(1) + 'M' : (v >= 1000 ? s + Math.round(v/1000) + 'K' : s + Math.round(v));
+      return short + ' ' + c + ' (' + t.count + ')';
+    })
+    .join(' · ');
+
+  /* how many transfers hit the ₪180 minimum fee (per each order's own price list) */
+  const minFeeCount = sizedOrders.filter(o => volUsd(o) * pricingOf(o.priceList)/100 < minNetUsd - 0.005).length;
+  const minFeeShare = sizedOrders.length ? minFeeCount / sizedOrders.length : 0;
+
+  /* year-over-year: full/partial calendar-year buckets */
+  const years = {};
+  base.forEach(o => {
+    const y = o.date.slice(0,4);
+    const yr = years[y] = years[y] || {volIls:0, count:0};
+    yr.volIls += volIls(o); yr.count++;
+  });
+  const yearRows = Object.entries(years).sort((a,b)=>a[0].localeCompare(b[0]));
+  for (let i=1;i<yearRows.length;i++){
+    const p = yearRows[i-1][1], c = yearRows[i][1];
+    c.volPct = p.volIls > 0 ? (c.volIls/p.volIls - 1)*100 : null;
+    c.cntPct = p.count > 0 ? (c.count/p.count - 1)*100 : null;
+  }
+
+  const gaps = [];
+  for (let i=1;i<base.length;i++) gaps.push((d(base[i].date)-d(base[i-1].date))/DAY);
+  const medGap = gaps.length ? median(gaps) : 30;
+  const p75Gap = gaps.length ? pctl(gaps,.75) : 45;
+  const daysSince = Math.round((asOf - last)/DAY);
+  const overdue = daysSince > Math.max(p75Gap, medGap*1.5);
+
+  const last3 = months.slice(-3), prev3 = months.slice(-6,-3);
+  const sum = (arr,k) => arr.reduce((s,b)=>s+b[k],0);
+  const vol3 = sum(last3,'vol'), volPrev3 = sum(prev3,'vol');
+  const trendPct = (prev3.length === 3 && volPrev3 > 0) ? (vol3/volPrev3 - 1)*100 : null;
+  const blend = (a3, aAll) => 0.6*a3 + 0.4*aAll;
+  const fcMonthlyVolIls = blend(vol3/3, avgMonthlyVolIls);
+  const fcQVolIls = fcMonthlyVolIls*3;
+  const fcAnnualVolIls = fcMonthlyVolIls*12;
+  const annualVolUsd = usdOfIls(fcAnnualVolIls);
+  const fcQOrders = Math.round(blend(sum(last3,'count')/3, base.length/spanMonths)*3);
+  const nextOrderBy = new Date(last.getTime() + Math.max(1, medGap)*DAY);
+  /* projected monthly fee accrual at the customer's own pricing, pre-VAT, USD */
+  const fcMonthlyFeeNetUsd = blend(sum(last3,'estNet')/3, months.reduce((s,b)=>s+b.estNet,0)/spanMonths);
+
+  /* ---------- voucher analysis ---------- */
+  const volUsdBetween = (d1, d2) => base.reduce((s,o)=> (o.date >= d1 && (!d2 || o.date < d2)) ? s + volUsd(o) : s, 0);
+  const netPayOf = v => usdOfIls(v.fee / VAT);        /* Total Amount is ILS incl. VAT */
+  const bonusFor = (netPay, pct) => {
+    const cands = TRACKS.filter(t=>t.pricing===pct).sort((a,b)=>a.pay-b.pay);
+    let b = cands[0];
+    for (const t of cands) if (netPay >= t.pay*0.9) b = t;
+    return b.bonus;
+  };
+  /* calibrate the burn rate (% of USD volume) from completed voucher cycles */
+  const effRates = [];
+  for (let i=0; i<voucherOrders.length-1; i++){
+    const v0 = voucherOrders[i], v1 = voucherOrders[i+1];
+    const vol = volUsdBetween(v0.date, v1.date);
+    if (vol <= 0 || v0.fee <= 0) continue;
+    const np = netPayOf(v0);
+    effRates.push(np * (1 + bonusFor(np, pricingOf(v0.priceList))/100) / vol * 100);
+  }
+  const effRate = effRates.length ? median(effRates) : null;
+
+  let voucher = null;
+  if (voucherOrders.length){
+    const v = voucherOrders[voucherOrders.length - 1];
+    const expiry = new Date(d(v.date).getTime() + 365*DAY);
+    const netPay = netPayOf(v);
+    const bonus = bonusFor(netPay, pricingOf(v.priceList));
+    const total = netPay * (1 + bonus/100);            /* USD, pre-VAT */
+    const sinceTrades = base.filter(o => o.date >= v.date);
+    const used = Math.min(total, effRate != null
+      ? volUsdBetween(v.date, null) * effRate/100
+      : sinceTrades.reduce((s,o)=>s+estFeeNetUsd(o, pricingOf(o.priceList)),0));
+    const remaining = Math.max(0, total - used);
+    const isActive = asOf <= expiry && remaining > 0;
+    const burnMonthlyUsd = effRate != null ? usdOfIls(fcMonthlyVolIls) * effRate/100 : fcMonthlyFeeNetUsd;
+    const monthsLeft = burnMonthlyUsd > 0 ? remaining / burnMonthlyUsd : Infinity;
+    const finishDate = new Date(asOf.getTime() + Math.min(monthsLeft, 36) * 30.44 * DAY);
+    voucher = {v, netPay, bonus, total, used, remaining, expiry, isActive, finishDate, burnMonthlyUsd};
+  }
+
+  /* ---------- header ---------- */
+  document.getElementById('custName').textContent = META.customer;
+  const chips = [
+    'תקופת פעילות: <b>' + fmtD(base[0].date) + ' – ' + fmtD(base[base.length-1].date) + '</b>',
+    'ותק: <b>' + tenureYears.toFixed(1) + ' שנים</b>'
+  ];
+  if (tenureYears < 1)
+    chips.push('עוד <b>' + Math.max(1, Math.ceil(12 - spanMonths)) + ' חודשים</b> להשלמת שנה ראשונה');
+  chips.push('מסלול: <b>' + (plLast || '—') + ' (' + curPricing + '%)</b>');
+  chips.push('נכון ל־<b>' + fmtD(META.asOf) + '</b>');
+  chips.push('<b>' + orders.length + '</b> עסקאות');
+  document.getElementById('headChips').innerHTML =
+    chips.map(h => '<span class="chip">' + h + '</span>').join('');
+
+  /* ---------- KPIs ---------- */
+  const totalVolUsd = usdOfIls(totalVolIls);
+  const curRows = Object.entries(curTotals)
+    .sort((a,b) => b[1].sum * rate(b[0]) - a[1].sum * rate(a[0]))
+    .map(([c,t]) => {
+      const s = sym(c), v = t.sum;
+      const short = v >= 1e6 ? s + (v/1e6).toFixed(2) + 'M' : (v >= 1000 ? s + Math.round(v/1000) + 'K' : s + Math.round(v));
+      return '<div class="cur-row"><b>' + c + '</b><span>' + short + ' · ' + t.count + '</span></div>';
+    }).join('');
+  const kpis = [
+    {lbl:'נפח מסחר כולל', val: usd$(totalVolUsd), sub:'שווי דולרי מוערך לפי השערים',
+     custom: curRows ? '<div class="cur-box">' + curRows + '</div>' : ''},
+    {lbl:'נפח מסחר שנתי צפוי', val: usd$(annualVolUsd), sub: '365 ימים קדימה · שקלול 60% × 3 חודשים אחרונים + 40% × ממוצע כללי, ×12', up: trendPct != null && trendPct > 0},
+    {lbl:'נפח חודשי ממוצע', val: usd$(usdOfIls(avgMonthlyVolIls)), sub: (base.length/spanMonths).toFixed(1) + ' עסקאות בחודש'},
+    {lbl:'גודל עסקה ממוצע', val: usd$(usdOfIls(avgSizeIls)), sub: sizedOrders.length ? 'טווח אופייני ' + usd$(usdOfIls(pctl(sizedOrders.map(volIls),.25))) + '–' + usd$(usdOfIls(pctl(sizedOrders.map(volIls),.75))) : ''},
+    {lbl:'עסקאות בעמלת מינימום', val: minFeeCount + ' (' + Math.round(minFeeShare*100) + '%)', sub: 'מתחת לסף של ~' + usd$(minNetUsd/(curPricing/100)) + ' — משלמות ₪' + MIN_FEE_NET_ILS + ' + מע״מ'},
+    {lbl:'הכנסות מצטברות (נטו)', val: usdF(totalRevenue), sub: voucherPaidNet > 0 ? 'מזה שוברים ' + usdF(voucherPaidNet) + ' · לפני מע״מ' : ils(totalRevenue) + ' · לפני מע״מ'},
+    {lbl:'מגמת רבעון אחרון', val: (trendPct==null?'—':(trendPct>=0?'+':'') + Math.round(trendPct) + '%'), sub: trendPct==null ? 'אין מספיק היסטוריה להשוואה' : usd$(usdOfIls(vol3)) + ' מול ' + usd$(usdOfIls(volPrev3)) + ' ברבעון הקודם', up: trendPct != null && trendPct > 0},
+    {lbl:'עסקה אחרונה', val: fmtD(base[base.length-1].date), sub: 'לפני ' + daysSince + ' ימים · מחזור אופייני ' + Math.round(medGap) + ' ימים'}
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(k =>
+    '<div class="kpi"><div class="lbl">' + k.lbl + '</div><div class="val">' + k.val + '</div><div class="sub' + (k.up?' up':'') + '">' + (k.sub||'') + '</div>' + (k.custom||'') + '</div>'
+  ).join('');
+
+  /* ---------- charts ---------- */
+  document.getElementById('volTitle').textContent = 'נפח מסחר חודשי (' + (dispCur==='ILS' ? 'שווי ₪' : dispCur) + ')';
+  document.getElementById('volDesc').textContent = dispCur==='ILS'
+    ? 'כל המטבעות מומרים לשקל לפי השערים שנבחרו · ריחוף על עמודה מציג פירוט'
+    : 'סכום העסקאות שבוצעו בכל חודש · ריחוף על עמודה מציג פירוט';
+  barChart('volChart', months.map(b=>({key:b.key, v:b.vol, b})), {
+    color:'var(--vol)', labelAll:true, quarters:true,
+    tick: v => { const x=v/dispRate; return S + (x>=1e6 ? (x/1e6).toFixed(1)+'M' : (x>=1000 ? Math.round(x/1000)+'K' : Math.round(x))); },
+    quarterTick: v => { const x=usdOfIls(v); return '$' + (x>=1e6 ? (x/1e6).toFixed(2)+'M' : (x>=1000 ? Math.round(x/1000)+'K' : Math.round(x))); },
+    aria:'נפח מסחר חודשי',
+    tipHtml: x => 'נפח: <b>'+disp(x.b.vol)+'</b><br>עסקאות: <b>'+x.b.count+'</b>' + (x.b.vPaid>0 ? '<br>🎟️ רכישת שובר: <b>'+usdF(x.b.vPaid)+'</b>' : '')
+  });
+  /* ---------- year-over-year table ---------- */
+  const yoyCard = document.getElementById('yoyCard');
+  if (yearRows.length >= 2){
+    yoyCard.style.display = '';
+    const fmtPct = p => p == null ? '<span style="color:var(--muted)">—</span>'
+      : '<span style="color:' + (p >= 0 ? 'var(--good-ink)' : 'var(--bad)') + ';font-weight:700">' + (p>=0?'+':'') + Math.round(p) + '%</span>';
+    document.getElementById('yoyBody').innerHTML = yearRows.map(([y,r]) =>
+      '<tr><td><b>' + y + '</b></td>' +
+      '<td class="num">' + usd$(usdOfIls(r.volIls)) + '</td>' +
+      '<td class="num">' + fmtPct(r.volPct) + '</td>' +
+      '<td class="num">' + r.count + '</td>' +
+      '<td class="num">' + fmtPct(r.cntPct) + '</td></tr>'
+    ).join('');
+  } else {
+    yoyCard.style.display = 'none';
+  }
+
+  barChart('feeChart', months.map(b=>({key:b.key, v:(b.fees + b.vPaid/VAT)/rUsd, b, mark:(b.vPaid>0?'🎟️':'')})), {
+    color:'var(--fee)', labelAll:true,
+    tick: v => '$'+nfIL.format(Math.round(v)), aria:'הכנסות חודשיות בדולר (נטו)',
+    tipHtml: x => (x.b.vPaid>0 ? '🎟️ שובר (לפני מע״מ): <b>'+usdF(x.b.vPaid/VAT)+'</b><br>' : '') +
+      'עמלות שנגבו: <b>'+usdF(x.b.fees)+'</b><br>עסקאות: <b>'+x.b.count+'</b>'
+  });
+
+  /* ---------- forecast ---------- */
+  const qStart = new Date(asOf); qStart.setDate(1); qStart.setMonth(qStart.getMonth()+1);
+  const qEnd = new Date(qStart); qEnd.setMonth(qEnd.getMonth()+3); qEnd.setDate(0);
+  document.getElementById('fcPeriod').textContent =
+    'הערכה ל־' + MON[qStart.getMonth()] + '–' + MON[qEnd.getMonth()] + ' ' + qEnd.getFullYear() + ', על בסיס קצב הפעילות בפועל';
+  document.getElementById('fcVol').innerHTML = usd$(usdOfIls(fcQVolIls)) + ' <small>נפח מסחר צפוי</small>';
+  const feeForecast = voucher && voucher.isActive
+    ? [ 'שחיקת שובר צפויה', usd$(voucher.burnMonthlyUsd*3) + ' <small>לפני מע״מ</small>' ]
+    : (voucherOrders.length
+        ? [ 'צבירת עמלות צפויה', usd$(fcMonthlyFeeNetUsd*3) + ' <small>לפני מע״מ</small>' ]
+        : [ 'הכנסת עמלה צפויה', usdF(blend(sum(last3,'fees')/3, feesCharged/spanMonths)*3) + ' <small>כולל מע״מ</small>' ]);
+  document.getElementById('fcGrid').innerHTML = [
+    ['עסקאות צפויות', '~' + fcQOrders],
+    feeForecast,
+    ['נפח חודשי צפוי', usd$(usdOfIls(fcMonthlyVolIls))],
+    ['עסקה הבאה צפויה עד', fmtD(isoOf(nextOrderBy))]
+  ].map(([l,v]) => '<div class="f-item"><div class="lbl">'+l+'</div><div class="val">'+v+'</div></div>').join('');
+  document.getElementById('cadence').innerHTML = overdue
+    ? '<div class="status-pill due">⚠ עברו ' + daysSince + ' ימים מהעסקה האחרונה — מעבר למחזור הרגיל (' + Math.round(medGap) + ' ימים). מומלץ ליצור קשר.</div>'
+    : '<div class="status-pill ok">✓ הלקוח בתוך מחזור הפעילות הרגיל שלו</div>';
+
+  /* ---------- voucher card ---------- */
+  const vBody = document.getElementById('voucherBody');
+  const vHist = voucherOrders.map(v => fmtD(v.date) + ' — ' + usd$(netPayOf(v)) + '+מע״מ').join(' · ');
+  if (voucher && voucher.isActive){
+    const usedPct = Math.min(100, Math.round(voucher.used / voucher.total * 100));
+    const finishesBeforeExpiry = voucher.finishDate <= voucher.expiry;
+    let intervalTxt = '';
+    if (voucherOrders.length >= 2){
+      const iv = [];
+      for (let i=1;i<voucherOrders.length;i++) iv.push((d(voucherOrders[i].date)-d(voucherOrders[i-1].date))/DAY);
+      intervalTxt = ' · רוכש שובר בממוצע כל ' + (iv.reduce((a,b)=>a+b,0)/iv.length/30.44).toFixed(1) + ' חודשים';
+    }
+    vBody.innerHTML =
+      '<div class="f-grid">' +
+      [
+        ['נרכש בתאריך', fmtD(voucher.v.date)],
+        ['בתוקף עד', fmtD(isoOf(voucher.expiry))],
+        ['שולם (לפני מע״מ)', usd$(voucher.netPay) + ' <small>(' + ils(voucher.v.fee) + ' כולל מע״מ)</small>'],
+        ['יתרה למימוש (הטבה ' + voucher.bonus + '%)', usd$(voucher.total)],
+        ['נוצל עד כה (מוערך)', usd$(voucher.used)],
+        ['יתרה בשובר (מוערך)', '<b>' + usd$(voucher.remaining) + '</b>']
+      ].map(([l,vv]) => '<div class="f-item"><div class="lbl">'+l+'</div><div class="val">'+vv+'</div></div>').join('') +
+      '</div>' +
+      '<div class="vbar"><div style="width:' + usedPct + '%"></div></div>' +
+      '<div class="desc" style="margin:0">נוצל ~' + usedPct + '% · שובר מס׳ ' + voucherOrders.length + intervalTxt + '</div>' +
+      '<div class="status-pill ' + (finishesBeforeExpiry ? 'ok' : 'due') + '">' +
+        (finishesBeforeExpiry
+          ? '⏳ בקצב הנוכחי השובר יסתיים בסביבות <b>&nbsp;' + fmtD(isoOf(voucher.finishDate)) + '</b>&nbsp;— מומלץ ליצור קשר לקראת מועד זה למכירת השובר הבא'
+          : '⚠ בקצב הנוכחי הלקוח לא ינצל את מלוא השובר עד תום התוקף (' + fmtD(isoOf(voucher.expiry)) + ')') +
+      '</div>' +
+      (effRate != null
+        ? '<div class="f-note">קצב השחיקה כויל מההיסטוריה של הלקוח: ~' + effRate.toFixed(2) + '% מנפח ההעברות, על בסיס ' + effRates.length + ' מחזורי שובר קודמים.</div>'
+        : '<div class="f-note">אין מחזור שובר קודם לכיול — השחיקה מוערכת לפי תמחור ' + curPricing + '% ומינימום ₪' + MIN_FEE_NET_ILS + ' לפעולה (לפני מע״מ).</div>');
+  } else if (voucher){
+    vBody.innerHTML = '<div class="novoucher">אין שובר בתוקף' +
+      '<span class="sm">' + (voucher.remaining <= 0 ? 'השובר האחרון נוצל במלואו' : 'תוקף השובר האחרון פג') +
+      ' · היסטוריית רכישות: ' + vHist + '</span></div>' +
+      '<div class="status-pill due">⚠ הלקוח ממשיך לסחור ללא שובר ומשלם עמלה מלאה — הזדמנות מכירה מיידית</div>';
+  } else {
+    vBody.innerHTML = '<div class="novoucher">אין שובר' +
+      '<span class="sm">לא נמצאה רכישת Prepaid Voucher בהיסטוריית העסקאות שבקובץ</span></div>';
+  }
+
+  /* ---------- voucher recommendation ----------
+     size the voucher to cover a year of fees at the recommended
+     pricing; prefer stretching a track above its base amount so
+     the whole projected cycle is covered */
+  const recLarge = annualVolUsd >= LARGE_THRESHOLD_USD;
+  const recPricing = recLarge ? 0.30 : 0.45;
+  const upgrade = recPricing < curPricing - 1e-9;
+  const annualTrades = (base.length / spanMonths) * 12;
+  const annualFeesUsd = Math.max(annualVolUsd * recPricing/100, annualTrades * minNetUsd);
+  const cands = TRACKS
+    .filter(t => t.pricing === recPricing && (t.label !== 'לקוח חדש' || tenureYears < 1))
+    .sort((a,b)=>a.pay-b.pay);
+  let track = null, payNeeded = null;
+  for (const t of cands){
+    const p = annualFeesUsd / (1 + t.bonus/100);
+    if (p >= t.pay - 0.5 && (!track || t.bonus > track.bonus)){ track = t; payNeeded = p; }
+  }
+  let shelf = false;
+  if (!track){ track = cands[0]; payNeeded = track.pay; shelf = true; }
+  payNeeded = Math.ceil(payNeeded/100)*100;
+  const stretched = !shelf && payNeeded > track.pay * 1.01;
+  const totalRedeem = payNeeded * (1 + track.bonus/100);
+
+  document.getElementById('recDesc').textContent =
+    'לפי מחזור שנתי צפוי של ' + usd$(annualVolUsd) + ' ותמחור ' + recPricing + '% → עמלות שנתיות צפויות ~' + usd$(annualFeesUsd) + ' (לפני מע״מ)';
+  let recText = '';
+  if (upgrade) recText += 'ממליץ להעביר את הלקוח למסלול תמחור <b>LARGE BUSINESS</b> (0.30%) ו';
+  if (shelf)
+    recText += 'למכור לו שובר <b>' + usd$(track.pay) + '</b> (+מע״מ) — מסלול ' + track.label;
+  else if (stretched)
+    recText += 'למכור לו שובר <b>' + usd$(track.pay) + '</b> ולמתוח את השובר ל־<b>' + usd$(payNeeded) + '</b> (+מע״מ) כדי לנצל את כל המחזור הצפוי של הלקוח';
+  else
+    recText += 'למכור לו שובר <b>' + usd$(payNeeded) + '</b> (+מע״מ) — מסלול ' + track.label;
+  document.getElementById('recBody').innerHTML =
+    '<div class="rec-line">💡 ' + recText + '</div>' +
+    '<div class="f-grid">' +
+    [
+      ['לתשלום (לפני מע״מ)', '<b>' + usd$(payNeeded) + '</b>'],
+      ['כולל מע״מ 18%', usd$(payNeeded*VAT) + ' <small>(' + ils(payNeeded*VAT*rUsd) + ')</small>'],
+      ['תוספת (הטבה ' + track.bonus + '%)', usd$(totalRedeem - payNeeded)],
+      ['יתרה למימוש עמלות', '<b>' + usd$(totalRedeem) + '</b>'],
+      ['מכסה מחזור שנתי של', '~' + usd$(totalRedeem / (recPricing/100))],
+      ['עלות אפקטיבית', (recPricing/(1+track.bonus/100)).toFixed(2) + '%']
+    ].map(([l,vv]) => '<div class="f-item"><div class="lbl">'+l+'</div><div class="val">'+vv+'</div></div>').join('') +
+    '</div>' +
+    '<div class="f-note">ההטבה נוספת לסכום שלפני המע״מ והעמלות יורדות ממנו. מעל מסלול ה־$15,000 ניתן להוסיף כל סכום באותו מפתח (50%).' +
+    (voucher && voucher.isActive ? ' מומלץ להציע לקראת סיום השובר הנוכחי.' : '') + '</div>';
+
+  /* ---------- insights ---------- */
+  const ins = [];
+  const srcTop = topShare(base.map(o=>o.source));
+  ins.push('<b>' + Math.round(srcTop.share*100) + '%</b> מהעסקאות בוצעו דרך <b>' + srcTop.name + '</b>' + (srcTop.name === 'Web Portal' ? ' — לקוח דיגיטלי שמבצע עצמאית, כמעט ללא צורך בליווי תפעולי.' : '.'));
+  const settled = trades.filter(o=>o.status==='Settled').length;
+  ins.push('<b>' + Math.round(settled/trades.length*100) + '%</b> מהעסקאות הושלמו (Settled)' + (canceled.length ? ', <b>' + canceled.length + '</b> בוטלו/נכשלו.' : '.'));
+  if (voucherOrders.length)
+    ins.push('לקוח שוברים: רכש <b>' + voucherOrders.length + '</b> שוברים בסך <b>' + usdF(voucherPaidNet) + '</b> נטו (לפני מע״מ) — העמלות השוטפות מכוסות מראש.');
+  if (LEGACY_PLS.test(plLast))
+    ins.push('⚠ הלקוח על מחירון ישן <b>' + plLast + '</b> שאינו נמכר יותר — מומלץ להעביר למחירון הנוכחי (BUSINESS / LARGE BUSINESS).');
+  if (trendPct != null && Math.abs(trendPct) >= 10)
+    ins.push('מגמת נפח <b>' + (trendPct>0?'עולה':'יורדת') + '</b>: ' + (trendPct>0?'+':'') + Math.round(trendPct) + '% ברבעון האחרון מול הקודם' + (trendPct>0?' — פוטנציאל להעמקת הפעילות.':' — כדאי לברר את הסיבה מול הלקוח.'));
+  const plFirst = base[0].priceList;
+  if (plFirst && plLast && plFirst !== plLast)
+    ins.push('הלקוח עבר ממחירון <b>' + plFirst + '</b> למחירון <b>' + plLast + '</b> במהלך התקופה.');
+  if (upgrade)
+    ins.push('הלקוח במסלול <b>' + plLast + '</b> (' + curPricing + '%) אך המחזור הצפוי שלו (' + usd$(annualVolUsd) + ') מצדיק מעבר ל־<b>LARGE BUSINESS</b> (0.30%).');
+  if (curBreakdown) ins.push('תמהיל מטבעות: <b>' + curBreakdown + '</b>.');
+  document.getElementById('insights').innerHTML = ins.map(t=>'<li>'+t+'</li>').join('');
+
+  /* ---------- table ---------- */
+  document.getElementById('tblDesc').textContent = orders.length + ' עסקאות, מהחדשה לישנה · 🎟️ = רכישת שובר · עמלות כולל מע״מ';
+  document.getElementById('tblBody').innerHTML = [...orders].reverse().map(o => {
+    const stCls = o.status === 'Settled' ? '' : (CANCELED.has(o.status) ? ' bad' : ' mid');
+    const isV = isVoucher(o);
+    const amt = isV ? 'רכישת שובר' : (o.amount == null ? '—' : nf2.format(o.amount) + ' ' + o.currency);
+    return '<tr><td>' + fmtD(o.date) + '</td><td>' + (o.num ? '#'+o.num : '—') + (isV ? ' 🎟️' : '') + '</td>' +
+      '<td class="num">' + amt + '</td>' +
+      '<td class="num">' + nf2.format(o.fee / rUsd) + '</td>' +
+      '<td class="num">' + nf2.format(o.fee) + '</td>' +
+      '<td>' + (o.priceList||'—') + '</td>' +
+      '<td><span class="st' + stCls + '">' + (o.status||'—') + '</span></td></tr>';
+  }).join('');
+
+  document.getElementById('foot').textContent =
+    'הופק אוטומטית מתוך "' + META.sourceFile + '" · הנתונים נכונים ל־' + fmtD(META.asOf) +
+    ' · המרות לפי ₪/$ ' + rUsd.toFixed(2) + ' ו־₪/€ ' + rEur.toFixed(2) + ' (ניתן לשינוי למעלה)' +
+    ' · עמלות בקובץ כוללות מע״מ 18%; ערכי שובר מוצגים לפני מע״מ';
+
+  document.getElementById('dropScreen').style.display = 'none';
+  document.getElementById('dash').style.display = 'flex';
+}
+
+/* ---------- file intake & controls ---------- */
+const dz = document.getElementById('dz');
+const fileInput = document.getElementById('fileInput');
+const dropErr = document.getElementById('dropErr');
+const rateUsd = document.getElementById('rateUsd');
+const rateEur = document.getElementById('rateEur');
+
+/* Storage must never throw: when the page is opened from SharePoint/OneDrive it runs
+   inside a sandboxed srcdoc iframe with no 'allow-same-origin', where merely READING
+   localStorage raises a SecurityError. Unguarded, that abort killed every listener
+   registered below and the tool silently stopped responding. */
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ /* sandboxed: keep in memory */ } }
+};
+
+rateUsd.value = store.get('cs_rate_usd') || DEF_USD.toFixed(2);
+rateEur.value = store.get('cs_rate_eur') || DEF_EUR.toFixed(2);
+[rateUsd, rateEur].forEach(inp => inp.addEventListener('change', ()=>{
+  store.set('cs_rate_usd', rateUsd.value);
+  store.set('cs_rate_eur', rateEur.value);
+  if (LAST) render(LAST.orders, LAST.meta);
+}));
+
+async function handleFile(file){
+  dropErr.textContent = '';
+  if (!file) return;
+  if (!/\.xlsx$/i.test(file.name)){ dropErr.textContent = 'יש לבחור קובץ .xlsx'; return; }
+  try{
+    const buf = await file.arrayBuffer();
+    const {orders, meta} = await parseXlsx(buf, file.name, file.lastModified);
+    LAST = {orders, meta};
+    render(orders, meta);
+    document.title = 'ClearShift — ' + meta.customer;
+    window.scrollTo(0,0);
+  }catch(e){
+    document.getElementById('dropScreen').style.display = 'flex';
+    document.getElementById('dash').style.display = 'none';
+    dropErr.textContent = 'שגיאה בקריאת הקובץ: ' + e.message;
+  }
+}
+dz.addEventListener('click', ()=> fileInput.click());
+dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+fileInput.addEventListener('change', ()=> { handleFile(fileInput.files[0]); fileInput.value = ''; });
+document.getElementById('loadAnother').addEventListener('click', ()=> fileInput.click());
+
+['dragover','dragenter'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); dz.classList.add('over');
+}));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); if (ev==='dragleave' && e.relatedTarget) return; dz.classList.remove('over');
+}));
+document.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+</script>
+</body>
+</html>
