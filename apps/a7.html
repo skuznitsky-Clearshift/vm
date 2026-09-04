@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.43" data-built="2026-09-03" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.44" data-built="2026-09-04" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.43 | 03.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.44 | 04.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -4845,6 +4845,7 @@ function freshState(kind) {
     publicIds: [],          /* companies marked ציבורית — the chain stops there */
     parentsAdded: [],       /* names of parent נסחים fed in, for display */
     chainAck: false,        /* explicit acknowledgement when the chain is open */
+    ctrlPickOpen: false,    /* the "choose a known person" panel is showing */
     signerCount: 1,
     signers: [blankSigner(), blankSigner()],
     reps: [],
@@ -6458,55 +6459,127 @@ function tdSel(obj, key, pairs, dis) {
 function sechd(t) { return el('div', { class: 'sechd' }, el('h3', {}, t), el('span', { class: 'line' })); }
 
 /* --------------------------- 2. company details ------------------------- */
-/* Anyone from the נסח, one click, whatever their holding.
+/* Everyone this case already knows about, as candidates for בעל שליטה.
 
-   The 25% threshold decides who is *automatically* a בעל שליטה, but it must not
-   decide who the user is *allowed* to add. אריזות ירושלים has five holders at
-   20% each: nobody clears the bar, so nothing was prefilled and all five had to
-   be retyped by hand. These buttons cover that, and the below-threshold ones are
-   marked so adding one is a deliberate act. */
-function addFromNasach() {
+   The 25% threshold decides who is filled in *automatically*. It must not
+   decide who the user is *allowed* to add - and when nobody clears it, somebody
+   still has to appear in the הצהרת נהנים. אריזות ירושלים is the standing
+   example: five holders at 20% each, nobody over the bar, so nothing was
+   prefilled and all five were retyped by hand.
+
+   The pool used to be the root נסח only, which missed the people that matter
+   most in a chain: the ones found in a חברת אם, who are exactly who the
+   declaration is about. It now gathers every person the case has seen - root
+   נסח, everyone down the ownership chain, the signers and the נציגים - deduped
+   by ת"ז, falling back to the name. Where someone is known from two places the
+   more informative label wins, so a holder who is also a signer still shows his
+   percentage. */
+function ctrlCandidates() {
+  const already = c => S.controllers.some(x =>
+    (c.idNumber && normId(x.idNumber) === normId(c.idNumber)) ||
+    (String(x.name || '').trim() && String(x.name || '').trim() === String(c.name || '').trim()));
+
+  const out = [];
+  const seen = new Map();
+  const add = (name, id, tag, rank, addr) => {
+    const nm = String(name || '').trim();
+    if (!nm) return;
+    const key = normId(id) || nm;
+    const prev = seen.get(key);
+    if (prev) {
+      /* keep the label that says more: a percentage beats "חותם" */
+      if (rank < prev.rank) { prev.tag = tag; prev.rank = rank; }
+      if (!prev.idNumber && id) prev.idNumber = id;
+      if (!prev.address && addr) prev.address = addr;
+      return;
+    }
+    const c = { name: nm, idNumber: id || '', tag, rank, address: addr || '' };
+    seen.set(key, c);
+    out.push(c);
+  };
+  const addrOf = id => (id && S.personAddr && S.personAddr.get(normId(id))) || '';
+
+  /* rank 0/1: holders, with their percentage - the most useful label */
+  const eff = treeEffective(S.tree, S.publicIds);
+  /* "בשרשרת" only when there IS one. On a flat company these are direct
+     holders, and the word claimed an indirect holding that does not exist. */
+  const viaChain = eff.depth > 1 ? '% בשרשרת' : '%';
+  (eff.owners || []).forEach(o => add(o.name, o.id,
+    o.pct + viaChain, o.pct >= CHAIN_CFG.controlThreshold ? 0 : 1, addrOf(o.id)));
+  S.people.filter(p => !p.isEntity).forEach(p => add(p.name, p.idNumber,
+    p.pct == null ? (p.title || 'מהנסח') : p.pct + '%',
+    (p.pct != null && p.pct >= CHAIN_CFG.controlThreshold) ? 0 : 1,
+    addrOf(p.idNumber)));
+  /* rank 2/3: known people with no holding of their own */
+  S.signers.slice(0, S.signerCount).forEach(s => add(s.name, s.idNumber, 'חותם', 2, ''));
+  (S.reps || []).forEach(r => add(r.name, r.idNumber, 'נציג', 3,
+    typeof r.address === 'string' ? r.address : ''));
+
+  return out.filter(c => !already(c));
+}
+
+/* One ＋, opening a chooser, instead of a row of one button per person. With a
+   chain the pool is no longer three or four names, and a wall of buttons stops
+   being a shortcut. "אדם חדש" lives inside the same chooser so that adding
+   somebody the case has never seen is the same gesture, not a separate one. */
+function ctrlAdder() {
   const box = el('div', {});
-  const already = ct => S.controllers.some(c =>
-    (ct.idNumber && normId(c.idNumber) === normId(ct.idNumber)) ||
-    (c.name || '').trim() === (ct.name || '').trim());
-  const cands = S.people.filter(p => !p.isEntity && (p.name || '').trim() && !already(p));
-  const anyOver = S.people.some(p => !p.isEntity && (p.pct || 0) >= CHAIN_CFG.controlThreshold);
+  const cands = ctrlCandidates();
+  const anyOver = treeEffective(S.tree, S.publicIds).owners
+    .some(o => o.pct >= CHAIN_CFG.controlThreshold) ||
+    S.people.some(p => !p.isEntity && (p.pct || 0) >= CHAIN_CFG.controlThreshold);
 
-  if (!anyOver && S.people.some(p => !p.isEntity && p.pct != null))
+  if (!anyOver && !S.controllers.some(c => (c.name || '').trim()))
     box.append(el('div', { class: 'note w' },
-      el('b', {}, `אין בעל מניות שמגיע ל-${CHAIN_CFG.controlThreshold}%. `),
-      'לכן לא מולא אף בעל שליטה אוטומטית. אם בפועל יש כאן בעל שליטה — למשל ' +
-      'קבוצת שותפים שמחזיקה יחד — הוסף אותו מהכפתורים שלמטה או ידנית.'));
+      el('b', {}, `אין מחזיק שמגיע ל-${CHAIN_CFG.controlThreshold}%, ולכן לא מולא אף בעל שליטה אוטומטית. `),
+      'ההצהרה לא אמורה לצאת ריקה: בחר מי נכנס אליה מהכפתור למטה — למשל בעל ' +
+      'המניות הגדול ביותר, או קבוצת שותפים שמחזיקה יחד. אם באמת אין בעל שליטה ' +
+      'בתאגיד, סמן זאת במפורש.'));
 
-  if (!cands.length) return box;
-  box.append(el('div', { class: 'lbl', style: 'margin:14px 0 7px' }, 'הוסף מהנסח'));
+  const addNew = () => {
+    S.controllers.push(blankCtrl());
+    S.ctrlPickOpen = false;
+    pendingFocus = '#ctrl-table';
+    render();
+  };
+
+  box.append(el('div', { class: 'bar', style: 'border:none;padding-top:12px;margin-top:8px' },
+    el('button', { class: S.ctrlPickOpen ? 'btn-primary' : 'btn-sm',
+      onclick: () => { S.ctrlPickOpen = !S.ctrlPickOpen; render(); } },
+      cands.length ? '＋ הוסף בעל שליטה' : '＋ הוסף בעל שליטה חדש',
+      cands.length ? el('span', { class: 'chip neutral', style: 'margin-inline-start:7px' },
+        cands.length + ' מוכרים') : null),
+    el('button', { class: 'btn-sm', onclick: () => {
+      S.controllers = []; S.ctrlPickOpen = false; render(); } },
+      'אין בעל שליטה בתאגיד')));
+
+  if (!S.ctrlPickOpen) return box;
+  if (!cands.length) { addNew(); return box; }
+
+  const pick = el('div', { class: 'panel', style: 'margin-top:10px' });
+  pick.append(el('div', { class: 'lbl', style: 'margin-bottom:8px' },
+    'בחר מהאנשים שכבר מוכרים בתיק'));
   const row = el('div', { class: 'bar', style: 'border:none;padding:0;margin:0' });
-  cands.forEach(p => {
-    const under = p.pct != null && p.pct < CHAIN_CFG.controlThreshold;
-    row.append(el('button', {
-      class: 'btn-sm',
-      title: under ? `מחזיק ${p.pct}% — מתחת לרף של ${CHAIN_CFG.controlThreshold}%` : null,
-      onclick: () => {
-        S.controllers.push(Object.assign(blankCtrl(), {
-          name: p.name, idNumber: p.idNumber || '',
-          address: (p.idNumber && S.personAddr && S.personAddr.get(normId(p.idNumber))) || ''
-        }));
-        S.controllers = S.controllers.filter(c => c.name.trim() || c.idNumber.trim());
-        render();
-      }
-    }, '＋ ' + p.name,
-      p.pct == null ? null : el('span', { class: under ? 'chip wait' : 'chip ok',
-        style: 'margin-inline-start:6px' }, p.pct + '%')));
+  cands.forEach(c => {
+    row.append(el('button', { class: 'btn-sm', onclick: () => {
+      S.controllers.push(Object.assign(blankCtrl(), {
+        name: c.name, idNumber: c.idNumber || '', address: c.address || '' }));
+      S.controllers = S.controllers.filter(x => x.name.trim() || x.idNumber.trim());
+      S.ctrlPickOpen = false;
+      render();
+    } }, c.name,
+      el('span', { class: 'chip ' + (c.rank === 0 ? 'ok' : 'neutral'),
+        style: 'margin-inline-start:7px' }, c.tag)));
   });
-  box.append(row);
+  pick.append(row);
+  pick.append(el('div', { class: 'bar', style: 'border:none;padding-top:12px;margin-top:6px' },
+    el('button', { class: 'btn-sm', onclick: addNew }, '＋ אדם חדש'),
+    el('button', { class: 'btn-sm', onclick: () => { S.ctrlPickOpen = false; render(); } },
+      'ביטול')));
+  box.append(pick);
   return box;
 }
 
-/* The ownership chain. Shown only when it can matter: a corporate shareholder
-   in the root נסח, or a parent נסח already fed in. Effective holding is the
-   product of the shares down the chain, and 25% is the line for a בעל שליטה —
-   the same threshold and the same arithmetic as the onboarding console. */
 function chainSection() {
   const hasEntityOwner = S.people.some(p => p.isEntity && p.roles.includes('owner'));
   const st = treeChainDone(S.tree, S.publicIds);
@@ -6887,12 +6960,8 @@ function screenCompany() {
         el('td', {}, el('button', { class: 'btn-sm btn-danger',
           onclick: () => { S.controllers.splice(i, 1); render(); } }, 'הסר')));
     }))));
-  p.append(el('div', { class: 'bar', style: 'border:none;padding-top:12px;margin-top:8px' },
-    el('button', { class: 'btn-sm', onclick: () => { S.controllers.push(blankCtrl()); render(); } },
-      '＋ הוסף בעל שליטה'),
-    el('button', { class: 'btn-sm', onclick: () => { S.controllers = []; render(); } },
-      'אין בעל שליטה בתאגיד')));
-  p.append(addFromNasach());
+  /* one ＋ for both routes - pick a known person, or type a new one */
+  p.append(ctrlAdder());
   /* Read the capacity off the fieldmap instead of naming it here: the v2
      הצהרת נהנים has four rows, not five, so the old hard-coded "> 5" stayed
      silent while the fifth controller was dropped from the document —
@@ -6903,8 +6972,17 @@ function screenCompany() {
     `בהצהרת נהנים יש ${ctrlRows} שורות בלבד. ` +
     `${S.controllers.length - ctrlRows} בעלי השליטה האחרונים לא ייכנסו למסמך — ` +
     'הסר או מזג כדי לבחור מי נכנס.'));
+  /* An empty table is legal - the form has a (ד) box for it - but it is rarely
+     the right answer, and it used to be stated as a neutral fact. In practice a
+     company almost always has somebody who belongs here even when nobody
+     crosses the threshold, and leaving it blank by inertia is the failure mode
+     worth naming. */
   if (!S.controllers.length) p.append(el('div', { class: 'note w' },
-    'ללא בעלי שליטה — במסמך יסומן סעיף (ד) "אין בעל שליטה בתאגיד".'));
+    el('b', {}, 'הטבלה ריקה. '),
+    'במסמך יסומן סעיף (ד) — ', el('b', {}, '"אין בעל שליטה בתאגיד"'),
+    '. זו הצהרה, ולרוב היא לא נכונה: גם כשאף אחד לא עובר את ' +
+    CHAIN_CFG.controlThreshold + '%, בדרך כלל יש מי שצריך להופיע כאן. ' +
+    'הוסף אותו מהכפתור למעלה, או השאר ריק רק אם באמת אין.'));
   }
 
   /* ---- CRS, in English ---- */
