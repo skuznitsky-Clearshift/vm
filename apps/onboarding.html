@@ -1,0 +1,2568 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<!--SKNOINTRO--><script>
+/* ?nointro=1 -> publish a no-op SKIntro before the real one loads, so the
+   signature plays only on the way in through ClearShift Apps. */
+if(/[?&]nointro=1/.test(location.search)){window.SKIntro={play:function(){return Promise.resolve(false)},skip:function(){},reset:function(){},off:true};}
+</script><!--/SKNOINTRO-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>פעילות לקוח כולל ספקים — ClearShift</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 39 39'%3E%3Cpath d='M0.5 19 A19 19 0 1 1 38.5 19 A19 19 0 0 1 19.5 38 L19.5 19 Z' fill='%23167398'/%3E%3Cpath d='M0.5 24.5 L8.5 24.5 L0.5 33 Z' fill='%23167398'/%3E%3Cpath d='M13.5 29.5 L13.5 37.5 L4.5 37.5 Z' fill='%23167398'/%3E%3C/svg%3E">
+<style>
+:root{
+  --page:#f0f6f9; --surface:#ffffff; --ink:#0d222c; --ink-2:#3f5f6f; --muted:#7995a3;
+  --grid:#dbeaf0; --baseline:#b0cfdb; --border:rgba(22,115,152,.16);
+  --vol:#167398; --fee:#3595bb;
+  --accent:#167398; --accent-ink:#115c7a; --btn-ink:#ffffff;
+  --good:#0ca30c; --good-ink:#006300; --warn:#b97a00; --warn-bg:rgba(250,178,25,.14);
+  --bad:#d03b3b; --bad-bg:rgba(208,59,59,.12); --good-bg:rgba(12,163,12,.10);
+  --accent-tint:rgba(22,115,152,.06); --accent-border:rgba(22,115,152,.38);
+  --row-hover:rgba(22,115,152,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page:#081217; --surface:#0e1d24; --ink:#ecf6fa; --ink-2:#a3c3d1; --muted:#6c8b99;
+    --grid:#1a323d; --baseline:#2a4a58; --border:rgba(120,190,220,.15);
+    --vol:#4aa8cc; --fee:#71c1dd;
+    --accent:#4aa8cc; --accent-ink:#8fd0e8; --btn-ink:#06242f;
+    --good:#0ca30c; --good-ink:#4ec24e; --warn:#fab219; --warn-bg:rgba(250,178,25,.12);
+    --bad:#e66767; --bad-bg:rgba(208,59,59,.18); --good-bg:rgba(12,163,12,.14);
+    --accent-tint:rgba(74,168,204,.10); --accent-border:rgba(74,168,204,.45);
+    --row-hover:rgba(74,168,204,.08);
+  }
+}
+html{background:var(--page);}
+body{
+  margin:0; padding:28px 20px 48px; direction:rtl;
+  font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+  color:var(--ink); background:var(--page); line-height:1.45;
+}
+.wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:16px;}
+.eyebrow{font-size:12px; letter-spacing:.12em; color:var(--accent-ink); text-transform:uppercase; font-weight:700;}
+.brand img{height:32px; display:block; margin-bottom:10px;}
+.brand-big{display:flex; justify-content:center; margin-bottom:10px;}
+.brand-big img{height:38px;}
+@media (prefers-color-scheme: dark){ .brand img, .brand-big img{filter:brightness(1.9) saturate(.75);} }
+header h1{margin:2px 0 0; font-size:30px; font-weight:700; letter-spacing:-.01em; text-wrap:balance;}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+.chip{font-size:12.5px; color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--border); border-radius:999px; padding:4px 12px;
+  display:inline-flex; align-items:center; gap:6px;}
+.chip b{color:var(--ink); font-weight:600;}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px;}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;}
+.kpi{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
+.kpi .lbl{font-size:12px; color:var(--muted); font-weight:600;}
+.kpi .val{font-size:23px; font-weight:700; margin-top:4px; letter-spacing:-.01em;}
+.kpi .sub{font-size:12px; color:var(--ink-2); margin-top:2px;}
+.kpi.alert{border-color:var(--bad); background:linear-gradient(180deg,var(--bad-bg),transparent 70%), var(--surface);}
+.kpi.opp{border-color:var(--accent-border); background:linear-gradient(180deg,var(--accent-tint),transparent 70%), var(--surface);}
+h2{font-size:15px; margin:0 0 2px; font-weight:700;}
+.card .desc{font-size:12.5px; color:var(--muted); margin:0 0 12px;}
+.chart-holder{direction:ltr; position:relative;}
+.chart-holder svg{display:block; width:100%; height:auto;}
+.bar{cursor:pointer;}
+.tooltip{position:absolute; pointer-events:none; direction:rtl; z-index:5;
+  background:var(--ink); color:var(--page); border-radius:8px; padding:8px 12px;
+  font-size:12.5px; line-height:1.5; white-space:nowrap; opacity:0;
+  transition:opacity .12s; box-shadow:0 4px 14px rgba(0,0,0,.25);}
+.legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:12px; font-size:12px; color:var(--ink-2);}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.sw{width:11px; height:11px; border-radius:3px; display:inline-block;}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:860px){ .two-col{grid-template-columns:1fr;} }
+.forecast{background:linear-gradient(180deg,var(--accent-tint),transparent 70%), var(--surface); border:1px solid var(--accent-border);}
+.forecast .big{font-size:34px; font-weight:700; letter-spacing:-.02em; margin:6px 0 0;}
+.forecast .big small{font-size:15px; font-weight:600; color:var(--ink-2);}
+.f-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:14px;}
+.f-item .lbl{font-size:12px; color:var(--muted); font-weight:600;}
+.f-item .val{font-size:17px; font-weight:700; margin-top:1px;}
+.f-item .val small{font-size:12px; font-weight:600; color:var(--ink-2);}
+.f-note{font-size:11.5px; color:var(--muted); margin-top:14px; border-top:1px solid var(--grid); padding-top:10px;}
+.rec-line{font-size:14.5px; line-height:1.6; background:var(--accent-tint);
+  border:1px solid var(--accent-border); border-radius:8px; padding:10px 14px; margin-bottom:12px;}
+.status-pill{display:inline-flex; align-items:center; gap:6px; border-radius:999px;
+  font-size:12.5px; font-weight:600; padding:5px 12px; margin-top:10px; line-height:1.4;}
+.status-pill.ok{background:var(--good-bg); color:var(--good-ink);}
+.status-pill.due{background:var(--warn-bg); color:var(--warn);}
+.status-pill.bad{background:var(--bad-bg); color:var(--bad);}
+ul.insights{margin:0; padding:0 18px 0 0; display:flex; flex-direction:column; gap:8px;}
+ul.insights li{font-size:13.5px; color:var(--ink-2);}
+ul.insights li b{color:var(--ink);}
+.table-scroll{overflow-x:auto;}
+table{border-collapse:collapse; width:100%; font-size:13px;}
+th{text-align:right; font-size:11.5px; color:var(--muted); font-weight:600;
+  border-bottom:1px solid var(--baseline); padding:6px 10px; white-space:nowrap;}
+th.sortable{cursor:pointer; user-select:none;}
+th.sortable:hover{color:var(--accent-ink);}
+th .arw{font-size:9px; opacity:.8;}
+td{padding:7px 10px; border-bottom:1px solid var(--grid); white-space:nowrap; font-variant-numeric:tabular-nums;}
+td.num{text-align:left; direction:ltr;}
+tr.sup-row{cursor:pointer;}
+tr.sup-row:hover{background:var(--row-hover);}
+tr.det-row > td{background:var(--accent-tint); white-space:normal;}
+tr.canceled td{opacity:.5; text-decoration:line-through; text-decoration-color:var(--bad);}
+tr.canceled td:last-child{text-decoration:none;}
+.st{display:inline-block; font-size:11.5px; font-weight:600; border-radius:999px; padding:2px 10px; background:var(--good-bg); color:var(--good-ink);}
+.st.mid{background:var(--warn-bg); color:var(--warn);}
+.st.bad{background:var(--bad-bg); color:var(--bad);}
+.st.new{background:var(--accent-tint); color:var(--accent-ink); border:1px solid var(--accent-border);}
+.cc{display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em; direction:ltr;
+  border:1px solid var(--border); border-radius:4px; padding:1px 5px; margin-left:6px; color:var(--accent-ink); background:var(--accent-tint);}
+.sup-name{font-weight:600; color:var(--ink); direction:ltr; display:inline-block; unicode-bidi:plaintext;}
+.share-cell{position:relative;}
+.share-bar{position:absolute; inset-inline-start:0; top:50%; transform:translateY(-50%);
+  height:16px; background:var(--accent-tint); border-inline-start:2px solid var(--accent); border-radius:3px; z-index:0;}
+.share-cell span{position:relative; z-index:1;}
+.ctry-row{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:10px; padding:5px 0; font-size:13px;}
+.ctry-bar{height:14px; background:var(--grid); border-radius:4px; overflow:hidden; direction:ltr;}
+.ctry-bar > div{height:100%; background:var(--vol); border-radius:4px;}
+.ctry-val{text-align:left; direction:ltr; font-variant-numeric:tabular-nums; color:var(--ink-2); font-size:12.5px;}
+.spark{direction:ltr;}
+.sup-desc{font-size:11.5px; color:var(--muted); font-weight:400; white-space:normal; max-width:260px; margin-top:1px;}
+.lnk{display:inline-block; text-decoration:none; font-size:14px; line-height:1;
+  border:1px solid var(--border); border-radius:6px; padding:4px 7px; background:var(--surface);}
+.lnk:hover{border-color:var(--accent); background:var(--accent-tint);}
+.sup-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px;
+  flex-wrap:wrap; border-bottom:1px solid var(--grid); padding-bottom:10px; margin-bottom:10px;}
+.sup-title{font-size:16px; font-weight:700; direction:ltr; unicode-bidi:plaintext;}
+.sup-sub{font-size:12.5px; color:var(--ink-2); margin-top:3px;}
+.sup-btns{display:flex; gap:8px; flex-wrap:wrap;}
+.sup-btns .btn{margin-top:0; text-decoration:none;}
+.det-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px 16px; margin:4px 0 10px;}
+footer{font-size:11.5px; color:var(--muted); text-align:center; margin-top:4px;}
+.ver{font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.02em; direction:ltr; align-self:center;}
+.dropzone .ver{display:block; margin-top:12px; opacity:.8;}
+.bar-label{font-size:10.5px; font-weight:600; fill:var(--ink-2);}
+.axis-t{font-size:10.5px; fill:var(--muted);}
+.warnbar{background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn);
+  border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600;}
+/* --- tabs --- */
+.tabs{display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:2px;}
+.tab{
+  font:inherit; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer;
+  background:transparent; border:none; border-bottom:2px solid transparent;
+  padding:9px 18px; margin-bottom:-1px; border-radius:8px 8px 0 0;
+}
+.tab:hover{color:var(--ink-2); background:var(--accent-tint);}
+.tab.on{color:var(--accent-ink); border-bottom-color:var(--accent); background:var(--accent-tint);}
+.tab .n{font-size:11.5px; font-weight:700; background:var(--accent); color:var(--btn-ink);
+  border-radius:999px; padding:1px 7px; margin-inline-start:6px;}
+/* --- collapsible groups: one summary line, the list folded away --- */
+details.fold{border:1px solid var(--border); border-radius:8px; background:var(--surface); margin-bottom:8px;}
+details.fold > summary{
+  list-style:none; cursor:pointer; padding:9px 14px; font-size:13.5px; font-weight:600;
+  display:flex; align-items:center; gap:9px; border-radius:8px;
+}
+details.fold > summary::-webkit-details-marker{display:none;}
+details.fold > summary::after{content:'▾'; margin-inline-start:auto; color:var(--muted); font-size:12px; transition:transform .15s;}
+details.fold[open] > summary::after{transform:rotate(180deg);}
+details.fold > summary:hover{background:var(--row-hover);}
+details.fold .cnt{
+  font-size:12px; font-weight:700; border-radius:999px; padding:1px 9px;
+  background:var(--accent-tint); color:var(--accent-ink); border:1px solid var(--accent-border);
+}
+details.fold.bad > summary{color:var(--bad);} details.fold.bad .cnt{background:var(--bad-bg); color:var(--bad); border-color:var(--bad);}
+details.fold.due > summary{color:var(--warn);} details.fold.due .cnt{background:var(--warn-bg); color:var(--warn); border-color:var(--warn);}
+details.fold.ok > summary{color:var(--good-ink);} details.fold.ok .cnt{background:var(--good-bg); color:var(--good-ink); border-color:var(--good);}
+.fold-body{padding:2px 14px 12px; display:flex; flex-direction:column; gap:7px;}
+.fold-body .row{font-size:13px; color:var(--ink-2); border-top:1px solid var(--grid); padding-top:7px;}
+.fold-body .row:first-child{border-top:none; padding-top:0;}
+.fold-body .row b{color:var(--ink);}
+.dir{display:inline-block; font-size:11px; font-weight:700; border-radius:4px; padding:1px 6px;}
+.dir.in{background:var(--good-bg); color:var(--good-ink);}
+.dir.out{background:var(--accent-tint); color:var(--accent-ink);}
+#dropScreen{min-height:calc(100vh - 120px); display:flex; align-items:center; justify-content:center;}
+.dropzone{width:min(660px, 92vw); border:2px dashed var(--baseline); border-radius:16px;
+  background:var(--surface); padding:52px 36px; text-align:center; cursor:pointer;
+  transition:border-color .15s, background .15s;}
+.dropzone.over{border-color:var(--vol); background:var(--accent-tint);}
+.dropzone .icon{font-size:40px;}
+.dropzone h1{font-size:23px; margin:12px 0 4px; font-weight:700; letter-spacing:.06em;}
+.dropzone h2{font-size:15px; font-weight:600; color:var(--ink-2); margin:0 0 10px;}
+.dropzone p{color:var(--ink-2); font-size:14px; margin:0;}
+.dropzone .hint{color:var(--muted); font-size:12.5px; margin-top:18px;}
+.dropzone .cols{color:var(--muted); font-size:11.5px; margin-top:8px; direction:ltr;}
+.dropzone .err{color:var(--bad); font-weight:600; font-size:13.5px; margin-top:16px; white-space:pre-wrap;}
+.btn{display:inline-block; margin-top:18px; background:var(--accent); color:var(--btn-ink); border:none;
+  font:inherit; font-weight:600; font-size:14px; padding:9px 22px; border-radius:8px; cursor:pointer;}
+.btn:focus-visible, .dropzone:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.btn.ghost{background:transparent; color:var(--ink-2); border:1px solid var(--border);
+  margin:0; padding:5px 14px; font-size:12.5px;}
+.topbar{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+.controls{display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;}
+.rate-ctl{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2);
+  background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px 10px;}
+.rate-ctl input{width:56px; font:inherit; font-weight:600; color:var(--ink); background:transparent;
+  border:none; outline:none; text-align:center; direction:ltr;}
+select.pick, input.search{font:inherit; font-size:13px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--border); border-radius:8px; padding:5px 10px; max-width:280px;}
+input.search{direction:rtl; width:230px;}
+.tbl-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
+#dash{display:none;}
+@media print{
+  body{padding:0; background:#fff;}
+  .controls, #dropScreen, .tbl-head input, .btn{display:none !important;}
+  .card, .kpi{break-inside:avoid; page-break-inside:avoid;}
+}
+@media (prefers-reduced-motion: reduce){ .tooltip{transition:none;} }
+</style>
+<script data-speed="0.75">
+/* ============================================================================
+   SK Products — intro signature animation
+   ----------------------------------------------------------------------------
+   Drop-in, zero dependencies. Add ONE line to any tool, ideally in <head>:
+
+       <script src="sk-intro.js"><\/script>
+
+   Options (data-* on the script tag):
+       data-auto="false"     do not play on load; call SKIntro.play() yourself
+       data-speed="1.25"     >1 faster, <1 slower (default 0.75 — the slow playback,
+                             the full sequence runs ~4.8s)
+       data-once="session"   play once per browser session ("day" / "never" too)
+       data-sub="..."        override the subtitle line
+       data-word="PRODUCTS"  override the wordmark tail
+
+   API:  SKIntro.play() -> Promise   |   SKIntro.skip()   |   SKIntro.reset()
+   Event: document fires "sk-intro:done" when it finishes.
+
+   Subtitle text (kept as \u escapes so the file is encoding-proof):
+       "פותח ע"י ספיר קוזניצקי וקלוד"
+   ==========================================================================*/
+(function () {
+  'use strict';
+  if (window.SKIntro) return;
+
+  /* "פותח ע"י ספיר קוזניצקי וקלוד" — escaped so the file survives any encoding */
+  var SUB_DEFAULT =
+    'פותח ע"י ' +
+    'ספיר קוזניצקי ' +
+    'וקלוד';
+
+  var tag = document.currentScript;
+  var ds  = (tag && tag.dataset) || {};
+
+  var CFG = {
+    auto  : ds.auto !== 'false',
+    speed : parseFloat(ds.speed) || 0.75,   /* slow playback is the default */
+    once  : ds.once || 'never',
+    sub   : ds.sub  || SUB_DEFAULT,
+    mono  : ds.mono || 'SK',
+    word  : ds.word || 'PRODUCTS'
+  };
+
+  /* ---------------------------------------------------------------- styles */
+  var CSS = [
+'.ski{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;opacity:0;',
+'  background:radial-gradient(100% 80% at 50% 42%,#0A1130 0%,#050818 40%,#010206 72%,#000 100%);',
+'  transition:opacity .22s ease;-webkit-font-smoothing:antialiased;cursor:pointer;--coil:1420ms;',
+'  --rb:#2F55E8;--rb-lo:#12266E;--rb-hi:#8AA9FF;--rb-pale:#DCE6FF}',
+'.ski::after{content:"";position:absolute;inset:0;pointer-events:none;',
+'  background:radial-gradient(46% 34% at 50% 43%,rgba(47,85,232,.22),transparent 72%);',
+'  opacity:0;transition:opacity .5s ease}',
+'.ski.hit::after{opacity:1}',
+'.ski.in{opacity:1}',
+'.ski.out{opacity:0;transform:scale(1.035);transition:opacity .5s ease,transform .5s ease}',
+'.ski-stage{display:flex;flex-direction:column;align-items:center;position:relative}',
+'.ski-mark{width:min(56vmin,288px);height:auto;overflow:visible;display:block;margin-bottom:-6px}',
+'.ski-spin{transform-box:view-box;transform-origin:200px 200px;',
+'  transform:rotate(-118deg) scale(1.1)}',
+'.ski.go .ski-spin{animation:ski-coil var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'.ski.go .ski-rev{animation:ski-draw var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'.ski.go .ski-spark{animation:ski-sparkrun var(--coil) cubic-bezier(.65,0,.35,1) forwards}',
+'@keyframes ski-coil{to{transform:rotate(0deg) scale(1)}}',
+'.ski-headwrap{opacity:0}',
+'.ski.go .ski-headwrap{animation:ski-fade .12s ease forwards}',
+'@keyframes ski-fade{to{opacity:1}}',
+'.ski.hit .ski-headwrap{opacity:0;animation:none;transition:opacity .2s ease}',
+'.ski.hit .ski-spark{opacity:0;transition:opacity .35s ease}',
+'.ski-arc{fill:none;stroke:rgba(138,169,255,.22);stroke-width:1;opacity:0;',
+'  transition:opacity .6s ease}',
+'.ski.hit .ski-arc{opacity:1}',
+'.ski-arc.a{animation:ski-spin 26s linear infinite}',
+'.ski-arc.b{animation:ski-spin 18s linear infinite reverse}',
+'@keyframes ski-spin{to{transform:rotate(360deg)}}',
+'.ski-mono{font-family:Impact,Haettenschweiler,"Arial Narrow","Arial Black",sans-serif;',
+'  font-size:50px;text-anchor:middle;letter-spacing:3px;fill:url(#ski-gt);opacity:0;',
+'  transform-box:view-box;transform:scale(1.55);transform-origin:200px 200px;filter:blur(6px)}',
+'.ski.hit .ski-mono{opacity:1;transform:scale(1);filter:blur(0);',
+'  transition:opacity .34s ease,transform .5s cubic-bezier(.16,1,.3,1),filter .34s ease}',
+'.ski-imp{fill:none;stroke:var(--rb-hi);stroke-width:2;opacity:0;transform-box:view-box;',
+'  transform-origin:200px 200px}',
+'.ski.hit .ski-imp{animation:ski-imp .78s cubic-bezier(.16,1,.3,1) forwards}',
+'.ski.hit .ski-imp.d{animation-delay:.11s;stroke-width:1;stroke-dasharray:3 9}',
+'@keyframes ski-imp{0%{opacity:.95;transform:scale(.28)}100%{opacity:0;transform:scale(2.05)}}',
+'.ski-word{margin-top:15px;display:flex;align-items:baseline;gap:.34em;position:relative;',
+'  direction:ltr;opacity:0;clip-path:inset(0 50% 0 50%);',
+'  font-family:Impact,Haettenschweiler,"Arial Narrow","Arial Black",sans-serif}',
+'.ski.word .ski-word{opacity:1;clip-path:inset(-30% -8% -30% -8%);',
+'  transition:clip-path .6s cubic-bezier(.16,1,.3,1),opacity .28s ease}',
+'.ski-word>span{background:linear-gradient(180deg,#F2F6FF 0%,#9FB8FF 55%,#2F55E8 100%);',
+'  -webkit-background-clip:text;background-clip:text;color:transparent;',
+'  filter:drop-shadow(0 0 16px rgba(47,85,232,.5))}',
+'.ski-sk{font-size:clamp(32px,7.4vmin,52px);letter-spacing:.05em}',
+'.ski-word>span.ski-pd{font-size:clamp(14px,3vmin,21px);letter-spacing:.36em;',
+'  padding-inline-start:.36em;background-image:linear-gradient(180deg,#D3E0FF,#4E70DC);',
+'  filter:drop-shadow(0 0 10px rgba(47,85,232,.35))}',
+'.ski-blade{position:absolute;inset:-40% -14%;pointer-events:none;opacity:0;',
+'  background:linear-gradient(104deg,transparent 42%,rgba(214,228,255,.9) 50%,transparent 58%)}',
+'.ski.word .ski-blade{animation:ski-blade .72s cubic-bezier(.4,0,.2,1) .06s}',
+'@keyframes ski-blade{0%{opacity:0;transform:translateX(-135%) skewX(-16deg)}',
+'  25%{opacity:1}100%{opacity:0;transform:translateX(135%) skewX(-16deg)}}',
+'.ski-rule{margin-top:15px;height:1px;width:min(58vmin,300px);transform:scaleX(0);',
+'  background:linear-gradient(90deg,transparent,rgba(138,169,255,.55),transparent)}',
+'.ski.sub .ski-rule{transform:scaleX(1);transition:transform .6s cubic-bezier(.16,1,.3,1)}',
+'.ski-sub{margin-top:13px;direction:rtl;opacity:0;transform:translateY(9px);',
+'  font-family:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;',
+'  font-size:clamp(12.5px,2.5vmin,15px);letter-spacing:.01em;color:#93A8D6;text-align:center}',
+'.ski.sub .ski-sub{opacity:1;transform:none;',
+'  transition:opacity .5s ease,transform .55s cubic-bezier(.16,1,.3,1)}',
+'@media (prefers-reduced-motion:reduce){',
+'  .ski *,.ski::after{transition-duration:.01ms!important;animation:none!important}}'
+  ].join('\n');
+
+  /* ------------------------------------------------------- spiral geometry */
+  var CX = 200, CY = 200, R0 = 157, R1 = 57, TURNS = 2.35, N = 620, WMAX = 24;
+
+  function pts() {
+    var out = [], i, t, th, r;
+    for (i = 0; i <= N; i++) {
+      t  = i / N;
+      th = -1.62 - t * TURNS * Math.PI * 2;                 // clockwise, inward
+      r  = R1 + (R0 - R1) * Math.pow(1 - t, 1.18);          // eases into centre
+      r += 5.5 * Math.sin(t * Math.PI * 6.5) * (1 - t);     // serpentine wobble
+      out.push([CX + r * Math.cos(th), CY + r * Math.sin(th), t]);
+    }
+    return out;
+  }
+  function width(t) {                                       // thin tail -> full head
+    return WMAX * (Math.pow(t, .45) * (1 - .42 * t) + .34 * Math.pow(t, 16));
+  }
+  function n2(v) { return Math.round(v * 100) / 100; }
+
+  function centerline(p) {
+    var d = 'M' + n2(p[0][0]) + ' ' + n2(p[0][1]), i;
+    for (i = 1; i < p.length; i++) d += 'L' + n2(p[i][0]) + ' ' + n2(p[i][1]);
+    return d;
+  }
+  function tapered(p) {
+    var L = [], R = [], i, a, b, dx, dy, l, w, nx, ny;
+    for (i = 0; i < p.length; i++) {
+      a = p[Math.max(0, i - 1)]; b = p[Math.min(p.length - 1, i + 1)];
+      dx = b[0] - a[0]; dy = b[1] - a[1]; l = Math.hypot(dx, dy) || 1;
+      w  = width(p[i][2]) / 2; nx = -dy / l * w; ny = dx / l * w;
+      L.push([p[i][0] + nx, p[i][1] + ny]);
+      R.push([p[i][0] - nx, p[i][1] - ny]);
+    }
+    R.reverse();
+    return 'M' + L.concat(R).map(function (q) { return n2(q[0]) + ' ' + n2(q[1]); }).join('L') + 'Z';
+  }
+
+  /* ------------------------------------------------------------ svg markup */
+  function svg(cl, cd) {
+    return '' +
+'<svg class="ski-mark" viewBox="0 0 400 400" aria-hidden="true">' +
+ '<defs>' +
+  '<linearGradient id="ski-g" x1="0" y1="0" x2="1" y2="1">' +
+   '<stop offset="0" stop-color="#12266E"/><stop offset=".45" stop-color="#2F55E8"/>' +
+   '<stop offset="1" stop-color="#9FBBFF"/></linearGradient>' +
+  '<linearGradient id="ski-gt" x1="0" y1="0" x2="0" y2="1">' +
+   '<stop offset="0" stop-color="#F2F6FF"/><stop offset=".6" stop-color="#9FB8FF"/>' +
+   '<stop offset="1" stop-color="#2F55E8"/></linearGradient>' +
+  '<radialGradient id="ski-h"><stop offset="0" stop-color="#FFFFFF"/>' +
+   '<stop offset=".4" stop-color="#CFE0FF"/><stop offset="1" stop-color="#2F55E8" stop-opacity="0"/>' +
+  '</radialGradient>' +
+  '<filter id="ski-bl" x="-60%" y="-60%" width="220%" height="220%">' +
+   '<feGaussianBlur stdDeviation="7"/></filter>' +
+  '<filter id="ski-bs" x="-60%" y="-60%" width="220%" height="220%">' +
+   '<feGaussianBlur stdDeviation="2.4"/></filter>' +
+  '<mask id="ski-m" maskUnits="userSpaceOnUse" x="-80" y="-80" width="560" height="560">' +
+   '<path class="ski-rev" d="' + cd + '" fill="none" stroke="#fff" ' +
+   'stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></mask>' +
+ '</defs>' +
+ '<g class="ski-spin">' +
+  '<circle class="ski-arc a" cx="200" cy="200" r="188" stroke-dasharray="2 14"/>' +
+  '<circle class="ski-arc b" cx="200" cy="200" r="179" stroke-dasharray="34 120"/>' +
+  '<g mask="url(#ski-m)">' +
+   '<path d="' + cl + '" fill="url(#ski-g)" opacity=".55" filter="url(#ski-bl)"/>' +
+   '<path d="' + cl + '" fill="url(#ski-g)"/>' +
+   '<path class="ski-spark" d="' + cd + '" fill="none" stroke="#DCE6FF" stroke-width="3.2" ' +
+    'stroke-linecap="round" filter="url(#ski-bs)"/>' +
+  '</g>' +
+  '<g class="ski-headwrap">' +
+   '<animateMotion class="ski-mo" dur="1.42s" begin="indefinite" fill="freeze" ' +
+    'calcMode="spline" keyTimes="0;1" keyPoints="0;1" keySplines="0.65 0 0.35 1" ' +
+    'path="' + cd + '"/>' +
+   '<circle class="ski-head" r="17" fill="url(#ski-h)"/>' +
+   '<circle class="ski-head2" r="3.4" fill="#FFFFFF"/></g>' +
+ '</g>' +
+ '<circle class="ski-imp" cx="200" cy="200" r="72"/>' +
+ '<circle class="ski-imp d" cx="200" cy="200" r="96"/>' +
+ '<text class="ski-mono" x="200" y="220">' + CFG.mono + '</text>' +
+'</svg>';
+  }
+
+  /* -------------------------------------------------------------- timeline */
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var running = null;
+
+  function shouldSkip() {
+    if (CFG.once === 'never') return false;
+    try {
+      var k = 'sk-intro:' + CFG.once, s = sessionStorage;
+      if (CFG.once === 'day') {
+        var today = new Date().toISOString().slice(0, 10);
+        if (localStorage.getItem(k) === today) return true;
+        localStorage.setItem(k, today); return false;
+      }
+      if (s.getItem(k)) return true;
+      s.setItem(k, '1'); return false;
+    } catch (e) { return false; }
+  }
+
+  function play(opt) {
+    if (running) return running;
+    opt = opt || {};
+    var sp = opt.speed || CFG.speed;
+
+    var style = document.getElementById('ski-css');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'ski-css'; style.textContent = CSS;
+      document.head.appendChild(style);
+    }
+
+    var p  = pts(), cd = centerline(p), cl = tapered(p);
+    var el = document.createElement('div');
+    el.className = 'ski';
+    el.innerHTML =
+      '<div class="ski-stage">' + svg(cl, cd) +
+        '<div class="ski-word"><span class="ski-sk">' + CFG.mono + '</span>' +
+          '<span class="ski-pd">' + CFG.word + '</span><i class="ski-blade"></i></div>' +
+        '<div class="ski-rule"></div>' +
+        '<div class="ski-sub">' + CFG.sub + '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+
+    var htmlOv = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+
+    var rev   = el.querySelector('.ski-rev');
+    var spark = el.querySelector('.ski-spark');
+    var mo    = el.querySelector('.ski-mo');
+    var LEN   = rev.getTotalLength();
+
+    /* keyframes depend on the measured path length, so they are built per run */
+    var kf = document.getElementById('ski-kf') || document.createElement('style');
+    kf.id = 'ski-kf';
+    kf.textContent =
+      '@keyframes ski-draw{from{stroke-dashoffset:' + LEN + '}to{stroke-dashoffset:0}}' +
+      '@keyframes ski-sparkrun{from{stroke-dashoffset:52}to{stroke-dashoffset:' + (52 - LEN) + '}}';
+    document.head.appendChild(kf);
+
+    rev.style.strokeDasharray    = LEN + ' ' + LEN;
+    rev.style.strokeDashoffset   = LEN;
+    spark.style.strokeDasharray  = '52 ' + (LEN + 60);
+    spark.style.strokeDashoffset = 52;
+    el.style.setProperty('--coil', (1420 / sp) + 'ms');
+    mo.setAttribute('dur', (1.42 / sp) + 's');
+
+    var timers = [], done, fin = new Promise(function (r) { done = r; });
+    function at(ms, fn) { timers.push(setTimeout(fn, ms / sp)); }
+
+    var ended = false;
+    function finish() {
+      if (ended) return; ended = true;
+      timers.forEach(clearTimeout); timers = [];
+      el.classList.add('out');
+      setTimeout(function () {
+        el.remove();
+        document.documentElement.style.overflow = htmlOv;
+        running = null;
+        document.dispatchEvent(new CustomEvent('sk-intro:done'));
+        done();
+      }, 520);
+    }
+
+    el.addEventListener('click', finish);
+    function key() { window.removeEventListener('keydown', key); finish(); }
+    window.addEventListener('keydown', key);
+
+    requestAnimationFrame(function () { el.classList.add('in'); });
+
+    if (reduce) {
+      rev.style.strokeDashoffset = 0;
+      spark.style.opacity = 0;
+      el.querySelector('.ski-spin').style.transform = 'none';
+      el.classList.add('hit', 'word', 'sub');
+      at(1900, finish);
+    } else {
+      at(110, function () {
+        el.classList.add('go');
+        try { mo.beginElement(); } catch (e) {}
+      });
+      at(110 + 1420, function () { el.classList.add('hit'); });
+      at(110 + 1770, function () { el.classList.add('word'); });
+      at(110 + 2190, function () { el.classList.add('sub'); });
+      at(110 + 3090, finish);
+    }
+
+    running = fin;
+    return fin;
+  }
+
+  var API = {
+    play  : play,
+    skip  : function () { var e = document.querySelector('.ski'); if (e) e.click(); },
+    config: CFG,
+    reset : function () {
+      try { sessionStorage.removeItem('sk-intro:session');
+            localStorage.removeItem('sk-intro:day'); } catch (e) {}
+    }
+  };
+  window.SKIntro = API;
+
+  if (CFG.auto && !shouldSkip()) {
+    if (document.body) play();
+    else document.addEventListener('DOMContentLoaded', function () { play(); });
+  }
+})();
+
+</script>
+<!--SKGATE--><script data-tool="c5" data-ver="1.3" data-built="2026-08-23" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+/* ============================================================================
+   SK Gate — version gate, kill switch and first-run identity for the SK tools
+   ----------------------------------------------------------------------------
+   Drop-in, zero dependencies, ES5. Goes in <head> IMMEDIATELY AFTER sk-intro.js:
+
+       <script data-tool="a7" data-ver="1.6" data-built="2026-08-23"
+               data-log="https://script.google.com/macros/s/AKfy.../exec"
+       > ...this file, inlined by build.ps1... [closing script tag]
+
+   NOTE the text above avoids writing a real closing script tag. When this file
+   is inlined, the HTML parser ends the script at the first "</scr"+"ipt"
+   followed by whitespace, "/" or ">" — a space is enough, so even a mention
+   inside a comment silently truncates the whole module. inject-gate.ps1
+   escapes it too, but do not rely on that.
+
+   What it does, in order:
+     1. hides the tool and paints the intro's own background, so nothing of the
+        app is visible or clickable until a verdict exists;
+     2. asks the decision file (numbers only) whether this build may run, while
+        the SK intro plays over it — a 300ms round trip inside a 4.8s animation;
+     3. on first ever run, asks "מה השם שלך? (בעברית)" once per device;
+     4. reveals the tool, or paints one of exactly two block messages;
+     5. reports the open (and any action the tool calls SKGate.use() for).
+
+   SECURITY MODEL — read before changing anything here.
+   The decision file returns NUMBERS ONLY. Every string a user can ever see
+   lives in MSG below, inside the build. A compromised host can therefore do
+   exactly one thing: refuse entry. It cannot inject markup, script, text or a
+   URL into any machine. The rules that keep that true:
+     - JSON.parse only. Never eval / new Function / <script src> / innerHTML.
+     - 2KB cap on the response, enforced before parsing.
+     - Allow-list into a FRESH object. Never Object.assign onto config.
+     - textContent for every render. No HTML from anywhere but this file.
+     - No URL is ever read from the response, and nothing navigates.
+     - The response is never written to storage.
+     - fail-open: no answer, bad answer, or broken JSON => the tool runs.
+       An outage on our side must never stop the team working. Local build-date
+       expiry is the only offline brake, and ?nocheck=1 overrides everything.
+
+   API:  SKGate.ready   -> Promise, resolves true (allowed) / false (blocked)
+         SKGate.use(s)  -> log one meaningful action ("pdf", "xlsx", ...)
+         SKGate.id      -> this device id (8 hex) — the value to block
+         SKGate.who     -> the stored name
+         SKGate.forget() -> clear identity on this device (for testing)
+   ==========================================================================*/
+(function () {
+  'use strict';
+  if (window.SKGate) return;
+
+  /* ---------------------------------------------------------------- config */
+  /* Lives in the vm repo for now because that repo already exists and already
+     has working push credentials. Moving it is a one-line change here plus a
+     re-run of apply-all.ps1 — see README.txt. */
+  var DEFAULT_GATE =
+    'https://raw.githubusercontent.com/skuznitsky-Clearshift/vm/main/gate.json';
+
+  var tag = document.currentScript;
+  var ds  = (tag && tag.dataset) || {};
+
+  var CFG = {
+    tool  : String(ds.tool || '??').slice(0, 8),
+    verS  : String(ds.ver  || '0'),
+    built : String(ds.built || ''),
+    maxAge: parseInt(ds.maxage, 10) || 60,   /* days of offline grace */
+    ttl   : parseInt(ds.ttl, 10) || 24,      /* hours an OK verdict is reused */
+    gate  : String(ds.gate || DEFAULT_GATE),
+    log   : String(ds.log || ''),
+    wait  : parseInt(ds.wait, 10) || 3500    /* ms before giving up on the net */
+  };
+
+  /* "1.6" -> 1006 so that 1.10 sorts above 1.9 */
+  function vnum(s) {
+    var p = String(s).replace(/[^0-9.]/g, '').split('.');
+    return ((parseInt(p[0], 10) || 0) * 1000) + (parseInt(p[1], 10) || 0);
+  }
+  var VER = vnum(CFG.verS);
+
+  /* The only two messages that can ever be shown. The decision file picks one
+     by number; it cannot supply a third. */
+  var MSG = {
+    1: 'הגרסה הזו ישנה - נא להוריד גרסה עדכנית',
+    2: 'אין גישה לממשק - צור קשר עם ספיר'
+  };
+
+  /* The team. A name typed that is not on this list is accepted and marked as
+     new in the log, so adding someone does not require a build. */
+  var TEAM = ['ספיר', 'יובל', 'יוסי', 'יצי', 'אסף', 'גדעון',
+              'דניאל', 'עידו', 'אביהו', 'אנה', 'ישי', 'אודי'];
+
+  /* ------------------------------------------------------- guarded storage */
+  /* In the SharePoint srcdoc iframe every one of these THROWS SecurityError
+     rather than returning null, and an unguarded read kills the whole script. */
+  var storeOK = true;
+  function sget(k) {
+    try { return window.localStorage.getItem(k); }
+    catch (e) { storeOK = false; return null; }
+  }
+  function sset(k, v) {
+    try { window.localStorage.setItem(k, v); return true; }
+    catch (e) { storeOK = false; return false; }
+  }
+  function sdel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+  /* All tools share one file:// storage bucket (verified: Chrome reports
+     origin "file://" for every path), so keys must be namespaced — and the
+     identity is therefore asked once per device for ALL tools, not per tool. */
+  var K_ID = 'sk.iid', K_WHO = 'sk.who', K_OK = 'sk.gateok';
+
+  function newId() {
+    var a = new Uint8Array(4), s = '', i;
+    try { window.crypto.getRandomValues(a); }
+    catch (e) { for (i = 0; i < 4; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (i = 0; i < 4; i++) s += ('0' + a[i].toString(16)).slice(-2);
+    return s;
+  }
+
+  /* A device with nowhere to keep an id is not a device we can count. In the
+     SharePoint srcdoc iframe every storage call throws, so a fresh random id
+     per page load would report ten "devices" for ten opens and bury the real
+     ones in noise. Collapse them all onto one reserved id instead: the log
+     still shows the visit, and it shows honestly that we cannot tell who. */
+  var NOSTORE = '00000000';
+  var iid = sget(K_ID);
+  if (!storeOK) {
+    iid = NOSTORE;
+  } else if (!iid || !/^[0-9a-f]{8}$/.test(iid)) {
+    iid = newId();
+    if (!sset(K_ID, iid)) { iid = NOSTORE; }
+  }
+  var who = sget(K_WHO) || '';
+
+  /* Where is this copy running from? This is the field that tells you who is
+     about to get stuck on an old build. */
+  function srcKind() {
+    try {
+      if (location.protocol !== 'file:') return 'web';
+      var p = decodeURIComponent(location.pathname);
+      return p.indexOf('ClearShift Tools') >= 0 ? 'shared' : 'local';
+    } catch (e) { return '?'; }
+  }
+
+  /* ------------------------------------------------------------------ chrome */
+  var HIDE_ID = 'skg-hide';
+  var CSS = [
+    /* keep the app invisible AND unclickable until a verdict exists. Not
+       display:none — layout still has to happen so the app can measure itself. */
+    'html.skg-wait{background:#050818}',
+    'html.skg-wait body>*:not(.skg):not(.ski){visibility:hidden!important;pointer-events:none!important}',
+    '.skg{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;',
+    '  background:radial-gradient(100% 80% at 50% 42%,#0A1130 0%,#050818 40%,#010206 72%,#000 100%);',
+    '  font-family:"Segoe UI Variable Text","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;',
+    '  direction:rtl;color:#DCE6FF;-webkit-font-smoothing:antialiased}',
+    '.skg.gone{opacity:0;transition:opacity .3s ease;pointer-events:none}',
+    '.skg-box{width:min(92vw,430px);text-align:center;padding:0 20px}',
+    '.skg-rule{height:1px;margin:0 auto 22px;width:min(58vmin,260px);',
+    '  background:linear-gradient(90deg,transparent,rgba(138,169,255,.55),transparent)}',
+    '.skg-h{font-size:19px;font-weight:640;letter-spacing:-.01em;color:#F2F6FF;margin:0 0 10px}',
+    '.skg-p{font-size:14.5px;line-height:1.65;color:#93A8D6;margin:0}',
+    '.skg-p.big{font-size:16px;color:#DCE6FF}',
+    '.skg-f{margin-top:26px;font-size:11.5px;letter-spacing:.06em;color:#4C5F8C}',
+    '.skg-row{margin-top:18px;display:flex;gap:8px;justify-content:center}',
+    '.skg-in{flex:1;min-width:0;padding:11px 13px;border-radius:9px;text-align:right;',
+    '  background:rgba(255,255,255,.05);border:1px solid rgba(138,169,255,.28);',
+    '  color:#F2F6FF;font:inherit;font-size:15px;outline:none}',
+    '.skg-in:focus{border-color:#2F55E8;background:rgba(47,85,232,.12)}',
+    '.skg-b{padding:11px 20px;border-radius:9px;border:0;cursor:pointer;font:inherit;',
+    '  font-size:14.5px;font-weight:640;background:#2F55E8;color:#fff}',
+    '.skg-b:hover{background:#4468F5}',
+    '.skg-err{margin-top:9px;font-size:12.5px;color:#E0796F;min-height:16px}',
+    '.skg-dots{margin-top:14px;font-size:12.5px;color:#4C5F8C;letter-spacing:.08em}',
+    '@media (prefers-reduced-motion:reduce){.skg,.skg *{transition:none!important}}'
+  ].join('\n');
+
+  var st = document.createElement('style');
+  st.id = HIDE_ID;
+  st.textContent = CSS;
+  (document.head || document.documentElement).appendChild(st);
+  document.documentElement.classList.add('skg-wait');
+
+  var cover = null;
+  function mkCover() {
+    if (cover) return cover;
+    cover = document.createElement('div');
+    cover.className = 'skg';
+    cover.style.opacity = '0';
+    /* invisible but still on top: without this it would swallow the click that
+       skips the intro */
+    cover.style.pointerEvents = 'none';
+    var box = document.createElement('div');
+    box.className = 'skg-box';
+    cover.appendChild(box);
+    cover._box = box;
+    (document.body || document.documentElement).appendChild(cover);
+    return cover;
+  }
+  /* build a panel out of textContent only — never innerHTML, anywhere */
+  function paint(parts) {
+    var c = mkCover(), box = c._box, i, p, el;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var rule = document.createElement('div'); rule.className = 'skg-rule';
+    box.appendChild(rule);
+    for (i = 0; i < parts.length; i++) {
+      p = parts[i];
+      el = document.createElement(p.t || 'div');
+      if (p.c) el.className = p.c;
+      if (p.x != null) el.textContent = p.x;
+      if (p.f) p.f(el);
+      box.appendChild(el);
+    }
+    c.style.opacity = '1';
+    c.style.pointerEvents = 'auto';
+    return box;
+  }
+  function reveal() {
+    document.documentElement.classList.remove('skg-wait');
+    if (cover) {
+      cover.classList.add('gone');
+      setTimeout(function () { if (cover && cover.parentNode) cover.parentNode.removeChild(cover); }, 320);
+    }
+  }
+
+  /* --------------------------------------------------------------- telemetry */
+  /* An <img> beacon, deliberately: an image request is not subject to CORS at
+     all, so the log endpoint needs no permissive headers and we never read a
+     response. Nothing comes back into the page. */
+  function ping(ev, label) {
+    if (!CFG.log) return;
+    try {
+      var q = '?ev=' + encodeURIComponent(ev) +
+              '&tool=' + encodeURIComponent(CFG.tool) +
+              '&ver=' + encodeURIComponent(CFG.verS) +
+              '&iid=' + encodeURIComponent(iid) +
+              '&who=' + encodeURIComponent(who) +
+              '&src=' + encodeURIComponent(srcKind()) +
+              (label ? '&x=' + encodeURIComponent(String(label).slice(0, 40)) : '') +
+              '&t=' + (new Date()).getTime();
+      var im = new Image();
+      im.referrerPolicy = 'no-referrer';
+      im.src = CFG.log + q;
+    } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------------- decision */
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+
+  /* Rebuild a known-shape object from the response. Nothing from the wire is
+     kept by reference, merged, or trusted for its type. */
+  function sanitize(txt) {
+    var o = JSON.parse(txt), out = { all: 0, msg: 1, min: 0, k: [], dev: [] }, t, i, n;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (o.all === 2) out.all = 2;
+    if (o.msg === 2) out.msg = 2;
+    if (o.tools && typeof o.tools === 'object' && has(o.tools, CFG.tool)) {
+      t = o.tools[CFG.tool];
+      if (t && typeof t === 'object' && !Array.isArray(t)) {
+        if (typeof t.min === 'number' && isFinite(t.min)) out.min = t.min | 0;
+        if (Array.isArray(t.k)) {
+          for (i = 0; i < t.k.length && out.k.length < 60; i++) {
+            n = t.k[i];
+            if (typeof n === 'number' && isFinite(n)) out.k.push(n | 0);
+          }
+        }
+      }
+    }
+    if (Array.isArray(o.dev)) {
+      for (i = 0; i < o.dev.length && out.dev.length < 800; i++) {
+        if (typeof o.dev[i] === 'string' && /^[0-9a-f]{8}$/.test(o.dev[i])) out.dev.push(o.dev[i]);
+      }
+    }
+    return out;
+  }
+
+  function verdictFrom(g) {
+    if (g.dev.indexOf(iid) >= 0) return { ok: false, code: 2 };   /* this device */
+    if (g.all === 2)             return { ok: false, code: g.msg }; /* everything */
+    if (VER > 0 && g.min && VER < g.min) return { ok: false, code: 1 };
+    if (VER > 0 && g.k.indexOf(VER) >= 0) return { ok: false, code: 1 };
+    return { ok: true, code: 0 };
+  }
+
+  /* offline brake: only the build date, and only after the grace window */
+  function localVerdict() {
+    var last = sget(K_OK), now = (new Date()).getTime(), d, age;
+    if (last && /^[0-9]{1,15}$/.test(last) &&
+        (now - parseInt(last, 10)) < CFG.ttl * 3600e3) return { ok: true, code: 0 };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(CFG.built)) {
+      d = Date.parse(CFG.built + 'T00:00:00');
+      if (isFinite(d)) {
+        age = (now - d) / 86400e3;
+        if (age > CFG.maxAge) return { ok: false, code: 1 };
+      }
+    }
+    return { ok: true, code: 0 };   /* fail-open */
+  }
+
+  function ask() {
+    return new Promise(function (res) {
+      if (/[?&]nocheck=1\b/.test(location.search)) return res({ ok: true, code: 0 });
+      if (!CFG.gate || !window.fetch) return res(localVerdict());
+
+      var ctl = null, killed = false;
+      try { ctl = new AbortController(); } catch (e) {}
+      var giveUp = setTimeout(function () {
+        killed = true;
+        try { if (ctl) ctl.abort(); } catch (e) {}
+        res(localVerdict());
+      }, CFG.wait);
+
+      var url = CFG.gate + (CFG.gate.indexOf('?') < 0 ? '?' : '&') +
+                't=' + (new Date()).getTime();
+      var opt = { cache: 'no-store', redirect: 'follow', referrerPolicy: 'no-referrer' };
+      if (ctl) opt.signal = ctl.signal;
+
+      fetch(url, opt).then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.text();
+      }).then(function (txt) {
+        if (killed) return;
+        clearTimeout(giveUp);
+        if (txt.length > 2048) throw new Error('too big');   /* cap before parse */
+        var g = sanitize(txt);
+        if (!g) throw new Error('shape');
+        var v = verdictFrom(g);
+        if (v.ok) sset(K_OK, String((new Date()).getTime()));
+        res(v);
+      })['catch'](function () {
+        if (killed) return;
+        clearTimeout(giveUp);
+        res(localVerdict());   /* unreachable, 404, garbage -> fail open */
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------------- intro */
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, false);
+    } else { fn(); }
+  }
+
+  /* Resolves when the SK intro is done — or straight away when it is not
+     playing at all. data-once="session" makes sk-intro skip play() entirely,
+     and in that case it never fires sk-intro:done, so waiting on the event
+     alone would hang the gate for its whole safety timeout. */
+  function introDone() {
+    return new Promise(function (res) {
+      var settled = false;
+      function fin() { if (!settled) { settled = true; res(); } }
+      document.addEventListener('sk-intro:done', fin, false);
+      if (!window.SKIntro) { onReady(fin); return; }
+      onReady(function () {
+        setTimeout(function () { if (!document.querySelector('.ski')) fin(); }, 150);
+      });
+      setTimeout(fin, 12000);
+    });
+  }
+
+  /* -------------------------------------------------------------- enrollment */
+  function enroll() {
+    return new Promise(function (res) {
+      if (!storeOK) return res();          /* nowhere to keep it — don't nag */
+      if (who) return res();
+
+      var listId = 'skg-team';
+      var box = paint([
+        { c: 'skg-h', x: 'מה השם שלך? (בעברית)' },
+        { c: 'skg-p', x: 'פעם אחת בלבד, לכל הכלים על המכשיר הזה.' }
+      ]);
+
+      var row = document.createElement('div'); row.className = 'skg-row';
+      var inp = document.createElement('input');
+      inp.className = 'skg-in';
+      inp.type = 'text';
+      inp.setAttribute('list', listId);
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      inp.maxLength = 40;
+      inp.placeholder = 'התחל להקליד…';
+
+      var dl = document.createElement('datalist');
+      dl.id = listId;
+      for (var i = 0; i < TEAM.length; i++) {
+        var op = document.createElement('option');
+        op.value = TEAM[i];
+        dl.appendChild(op);
+      }
+
+      var btn = document.createElement('button');
+      btn.className = 'skg-b';
+      btn.type = 'button';
+      btn.textContent = 'המשך';
+
+      row.appendChild(inp); row.appendChild(btn);
+      box.appendChild(row); box.appendChild(dl);
+
+      var err = document.createElement('div'); err.className = 'skg-err';
+      box.appendChild(err);
+
+      var foot = document.createElement('div');
+      foot.className = 'skg-f';
+      foot.textContent = 'מזהה מכשיר ' + iid;
+      box.appendChild(foot);
+
+      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+
+      function go() {
+        var v = inp.value.replace(/\s+/g, ' ').trim();
+        /* Hebrew letters, space, hyphen, geresh. Own-goal injection is as easy
+           as any other, so the user's own input is validated too. */
+        if (v.length < 2 || v.length > 40 || !/^[א-ת][א-ת '׳-]*$/.test(v)) {
+          err.textContent = 'נא להקליד שם בעברית';
+          try { inp.focus(); } catch (e) {}
+          return;
+        }
+        who = v;
+        sset(K_WHO, who);
+        ping('join');
+        res();
+      }
+      btn.addEventListener('click', go, false);
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); go(); }
+      }, false);
+    });
+  }
+
+  /* Make the device id readable off a screenshot: the build stamp already sits
+     in the top bar of every tool, so the id goes next to it. */
+  function stampId() {
+    try {
+      var e = document.querySelector('.ver');
+      if (e && e.textContent.indexOf(iid) < 0) {
+        e.textContent = e.textContent + ' · ' + iid;
+        if (e.title) e.title = e.title + ' — מזהה מכשיר ' + iid;
+      }
+    } catch (x) {}
+  }
+
+  /* -------------------------------------------------------------------- flow */
+  var resolveReady;
+  var ready = new Promise(function (r) { resolveReady = r; });
+
+  var asking = ask();          /* fires immediately, in parallel with the intro */
+  var waiting = introDone();
+
+  /* Dead-man switch. If 20s pass with nothing painted and nothing decided, the
+     gate is what is broken — let the person work. It fires only in limbo: a
+     real block has painted a panel by then and is left alone. */
+  setTimeout(function () {
+    if (cover && cover._box && cover._box.firstChild) return;
+    document.documentElement.classList.remove('skg-wait');
+    if (cover && cover.parentNode) cover.parentNode.removeChild(cover);
+  }, 20000);
+
+  /* if the answer is late, say so rather than showing a frozen logo */
+  var slow = setTimeout(function () {
+    if (!document.querySelector('.skg-dots')) {
+      var box = mkCover()._box;
+      if (!box.firstChild) {
+        paint([{ c: 'skg-dots', x: 'מאמת גרסה…' }]);
+      }
+    }
+  }, 5200);
+
+  Promise.all([asking, waiting]).then(function (r) {
+    clearTimeout(slow);
+    var v = r[0];
+
+    if (!v.ok) {
+      ping('block');
+      paint([
+        { c: 'skg-h', x: 'הממשק אינו זמין' },
+        { c: 'skg-p big', x: MSG[v.code] || MSG[2] },
+        { c: 'skg-f', x: CFG.tool + ' · ' + CFG.verS + ' · מזהה מכשיר ' + iid }
+      ]);
+      resolveReady(false);
+      return;
+    }
+
+    enroll().then(function () {
+      stampId();
+      ping('open');
+      reveal();
+      resolveReady(true);
+    });
+  })['catch'](function () {
+    /* the gate itself must never be what breaks a tool */
+    clearTimeout(slow);
+    reveal();
+    resolveReady(true);
+  });
+
+  window.SKGate = {
+    ready : ready,
+    use   : function (label) { ping('use', label); },
+    get id()  { return iid; },
+    get who() { return who; },
+    forget: function () { sdel(K_WHO); sdel(K_ID); sdel(K_OK); },
+    config: CFG
+  };
+})();
+
+</script><!--/SKGATE-->
+
+</head>
+<body>
+
+<div id="dropScreen">
+  <div class="dropzone" id="dz" tabindex="0" role="button" aria-label="בחירת קובץ אקסל">
+    <div class="brand-big">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKUAAAAmCAYAAAClD1usAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAXDSURBVHhe7ZvBkRw3DEUVgk5zdgjOwCk4BIfgqknAIfg4R4egEBSCjj4qBGdg118tXNhHECC5vbOz1Tw81ahJECD4m2Szez9drrdPi/x8ud5+v1xvf12ut68Bf1yut18Cu80mpblQ8NOzCP+5XG//TiCbLdDNEM2FDhKjZj+KbRa1scW5SWkuBGgZprhey5+X6+1z4GuzSUUp0RwxO/b49rwvpd/NyWkuPCNBSjQU0tFob7qFuXlBc+GOgjQkTO1ZGcfmpDQX7ixIQz73HnPzBC+8xUPNKHr4YTybE+L/oyWUQrk3+7ho80KUOuCmSO6NnvabIDfnwn48wixp7Kfxk2M/9A6b4ngvNGM3gW7Og/14y0PyWXRE1AS6OQ/2g8J4b/YSfmL0jwRAUbw3vzHQzXnQPzqGoSjeG52XNsEehA7p1b5xlkN7PTdYn1dWIm/fa0O5VD1+W/tlJs/65xFFqU40wXbQyYGSFL2J0jUeyqttX+cMD1Z8kF3ZtzO3PL6TSLPvbIcnGvvBu2AVDvgq7HAPLfNZIgz1z2z4UDfq6yOjsWFOWKeC9sxbNfaKwepqItTY6Vozg9LxETCYFdjhCHWKdj18QrYof8A6Fbz5uQKxfcutLd+23PMljR+bJ+j4CBjYCtWSqiWbScr41dluUf6AdSqUc81whp/hooflRmzPlPVocAR0ukITKNBdShuJVMu0T5zghnxGlBoIW2aEflef2dngcWuja5mt4uSAq7765G8qX9/HJqz/XBIjUWr28rbykcWnNn1efZn+z/bt77LYb9bTuMn3/3Xp+AjodIXqSCh6qGGieoyIsvqbJJVR7KLaVwkNFkXDmUb9Y1vmb/QvAnwOI1H2iOITzLnfp0ei9PhvZllGvtLxEdDJCtkdG/n4HtTpwQGlKEe3BtFX82y7B31WgyrsplvxMSNK2hqs41ezmfh5nTyJkud2EUx+Bp3MUgks+ngkSmIPDiptWZ7BWGds/Uw2Mqgag6jvPfyx2qwoBbcMLJ8R5fRMWTVYPXQQ2s/iOxsRxUthZVA43pbLqNCyZXse2go/eLL3ezTbJ3EpFj6vUZ+E/Kktm2WieorP/Min+fdLcCRKv/+u4hMsr0SpNq39bE8pfCyfew0aDGwEtjFLtXRH8c4ctlNY1TLHeDQ7+nIejfRgu95v1Ce/Z8vqKR7GSKJ+sQ7LeaOzvBJlb3JhPfpJ3+isCFKwnRlGfEbxjtgZmSijGYObfm74m6Q67ElcMxjbrUSpa2xP9Pa7nB09I6LM8iJof3dRzgwyYVujjP5VYxRv07GELPksG8Hb2/6cwo1YFWUkcEOzJveC4sOLslqOlPhMtHQ6SrRcRUT7vqZjCVnyWTaC2SsvI2KkneAYiJ4ohYTXmzEFtzMfWpTV+aBPPMsMOh2BSaygvWJinR5Z8llmbet6D8sZP3oQmrmsHsteI0phszLtDD+5RPXYHmOkWGh/F1HOCFKw3KDTipW/+Y5miZGlX2TJ555y5msatlsdF71WlEbvoN/H/iFFOStIwToGnWasCFLwpb61NSLMLPnR4I2KI2u3Ko8GddSvwfERVhb1i/ZZfIL2R4lSN+8LDdAgovedHOsZrNdDs9KKIEWUhB5885IlP9qvCt0ESrKhpVF2/mZmu/bQYTc9c7gqSvPNeNi+MJtHFqXQDaX62gKV7757ghSsmzn1qL3Rh5qMaLbs4RNUJZ/lFSb46CORjFVRsl4Pv89+JFHSD/lOA08mSMH6But5JKSRJXYEzbLcA/aYEWW0Vckw8Yy+MzfeWpTe/pFEGcXi+ZsGRiXI7AGAdhpgzYyrS3WFlsZMRFy+OaNF+2k79mJf2C63IPLDNz7Clid/zT8dR4LufW/A+Il8UdAcz2j82C6PBv3KJHt/Hsp38tWzAn15vrCywe/0SHRAa9hbDCbmrVESzK/RG9gZ1AbbrWZ7b1PVXcXn2ciE8Igw/qfx+g+zudjQumLKxwAAAABJRU5ErkJggg==" alt="Clearshift">
+    </div>
+    <h1>פעילות לקוח כולל ספקים</h1>
+    <h2>הפעילות של הלקוח, הספקים שלו והמדינות שאליהן זורם הכסף</h2>
+    <p>גררו לכאן <b>ייצוא הזמנות (.xlsx) מ־Dynamics</b><br>או לחצו לבחירת קובץ</p>
+    <button class="btn" type="button">בחירת קובץ…</button>
+    <div class="hint">הקובץ מעובד מקומית במחשב שלך בלבד — שום נתון לא נשלח החוצה</div>
+    <div class="hint" style="margin-top:6px">שם הקובץ לא משנה, וגם לא סדר העמודות — הזיהוי לפי שמות העמודות בלבד. נדרשות לפחות <b>Name</b> ו־<b>Created On</b>; כל שדה נוסף שקיים מנוצל אוטומטית:</div>
+    <div class="cols">Customer · Account Profile · Order Status · Source / Destination Bank Account (+ Country, + Owning Party) · Transfer Subtype · Business Description · Website · Transaction / Net Delivery Amount (+ Currency) · Total Amount</div>
+    <div class="err" id="dropErr"></div>
+    <div class="ver">v1.3 · 23.08.2026</div>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx" hidden>
+</div>
+
+<div class="wrap" id="dash">
+  <header>
+    <div class="topbar">
+      <div>
+        <div class="brand">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKUAAAAmCAYAAAClD1usAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAXDSURBVHhe7ZvBkRw3DEUVgk5zdgjOwCk4BIfgqknAIfg4R4egEBSCjj4qBGdg118tXNhHECC5vbOz1Tw81ahJECD4m2Szez9drrdPi/x8ud5+v1xvf12ut68Bf1yut18Cu80mpblQ8NOzCP+5XG//TiCbLdDNEM2FDhKjZj+KbRa1scW5SWkuBGgZprhey5+X6+1z4GuzSUUp0RwxO/b49rwvpd/NyWkuPCNBSjQU0tFob7qFuXlBc+GOgjQkTO1ZGcfmpDQX7ixIQz73HnPzBC+8xUPNKHr4YTybE+L/oyWUQrk3+7ho80KUOuCmSO6NnvabIDfnwn48wixp7Kfxk2M/9A6b4ngvNGM3gW7Og/14y0PyWXRE1AS6OQ/2g8J4b/YSfmL0jwRAUbw3vzHQzXnQPzqGoSjeG52XNsEehA7p1b5xlkN7PTdYn1dWIm/fa0O5VD1+W/tlJs/65xFFqU40wXbQyYGSFL2J0jUeyqttX+cMD1Z8kF3ZtzO3PL6TSLPvbIcnGvvBu2AVDvgq7HAPLfNZIgz1z2z4UDfq6yOjsWFOWKeC9sxbNfaKwepqItTY6Vozg9LxETCYFdjhCHWKdj18QrYof8A6Fbz5uQKxfcutLd+23PMljR+bJ+j4CBjYCtWSqiWbScr41dluUf6AdSqUc81whp/hooflRmzPlPVocAR0ukITKNBdShuJVMu0T5zghnxGlBoIW2aEflef2dngcWuja5mt4uSAq7765G8qX9/HJqz/XBIjUWr28rbykcWnNn1efZn+z/bt77LYb9bTuMn3/3Xp+AjodIXqSCh6qGGieoyIsvqbJJVR7KLaVwkNFkXDmUb9Y1vmb/QvAnwOI1H2iOITzLnfp0ei9PhvZllGvtLxEdDJCtkdG/n4HtTpwQGlKEe3BtFX82y7B31WgyrsplvxMSNK2hqs41ezmfh5nTyJkud2EUx+Bp3MUgks+ngkSmIPDiptWZ7BWGds/Uw2Mqgag6jvPfyx2qwoBbcMLJ8R5fRMWTVYPXQQ2s/iOxsRxUthZVA43pbLqNCyZXse2go/eLL3ezTbJ3EpFj6vUZ+E/Kktm2WieorP/Min+fdLcCRKv/+u4hMsr0SpNq39bE8pfCyfew0aDGwEtjFLtXRH8c4ctlNY1TLHeDQ7+nIejfRgu95v1Ce/Z8vqKR7GSKJ+sQ7LeaOzvBJlb3JhPfpJ3+isCFKwnRlGfEbxjtgZmSijGYObfm74m6Q67ElcMxjbrUSpa2xP9Pa7nB09I6LM8iJof3dRzgwyYVujjP5VYxRv07GELPksG8Hb2/6cwo1YFWUkcEOzJveC4sOLslqOlPhMtHQ6SrRcRUT7vqZjCVnyWTaC2SsvI2KkneAYiJ4ohYTXmzEFtzMfWpTV+aBPPMsMOh2BSaygvWJinR5Z8llmbet6D8sZP3oQmrmsHsteI0phszLtDD+5RPXYHmOkWGh/F1HOCFKw3KDTipW/+Y5miZGlX2TJ555y5msatlsdF71WlEbvoN/H/iFFOStIwToGnWasCFLwpb61NSLMLPnR4I2KI2u3Ko8GddSvwfERVhb1i/ZZfIL2R4lSN+8LDdAgovedHOsZrNdDs9KKIEWUhB5885IlP9qvCt0ESrKhpVF2/mZmu/bQYTc9c7gqSvPNeNi+MJtHFqXQDaX62gKV7757ghSsmzn1qL3Rh5qMaLbs4RNUJZ/lFSb46CORjFVRsl4Pv89+JFHSD/lOA08mSMH6But5JKSRJXYEzbLcA/aYEWW0Vckw8Yy+MzfeWpTe/pFEGcXi+ZsGRiXI7AGAdhpgzYyrS3WFlsZMRFy+OaNF+2k79mJf2C63IPLDNz7Clid/zT8dR4LufW/A+Il8UdAcz2j82C6PBv3KJHt/Hsp38tWzAn15vrCywe/0SHRAa9hbDCbmrVESzK/RG9gZ1AbbrWZ7b1PVXcXn2ciE8Igw/qfx+g+zudjQumLKxwAAAABJRU5ErkJggg==" alt="Clearshift">
+        </div>
+        <div class="eyebrow">פעילות לקוח כולל ספקים</div>
+        <h1 id="custName"></h1>
+      </div>
+      <div class="controls">
+        <span class="ver">v1.3 · 23.08.2026</span>
+        <select class="pick" id="custPick" style="display:none"></select>
+        <label class="rate-ctl">₪/$ <input type="number" id="rateUsd" step="0.01" min="1" max="10"></label>
+        <label class="rate-ctl">₪/€ <input type="number" id="rateEur" step="0.01" min="1" max="10"></label>
+        <button class="btn ghost" type="button" id="printBtn">🖨 הדפסה / PDF</button>
+        <button class="btn ghost" type="button" id="loadAnother">📁 טעינת קובץ אחר</button>
+      </div>
+    </div>
+    <div class="chips" id="headChips"></div>
+  </header>
+
+  <div id="warnBar" style="display:none" class="warnbar"></div>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" class="tab" data-v="activity">מחזור הלקוח</button>
+    <button type="button" class="tab" data-v="parties" id="tabParties">ספקים</button>
+  </nav>
+
+  <!-- ===================== tab 1 — the client's turnover ===================== -->
+  <div id="viewActivity">
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card">
+      <h2 id="volTitle">נפח פעילות חודשי</h2>
+      <p class="desc" id="volDesc">סכום התנועות בכל חודש · ריחוף על עמודה מציג פירוט</p>
+      <div class="chart-holder" id="volChart"></div>
+    </section>
+
+    <div class="two-col">
+      <section class="card forecast">
+        <h2>צפי פעילות — הרבעון הקרוב</h2>
+        <p class="desc" id="fcPeriod"></p>
+        <div class="big" id="fcVol"></div>
+        <div class="f-grid" id="fcGrid"></div>
+        <div id="cadence"></div>
+        <div class="f-note">התחזית משוקללת: 60% ממוצע שלושת החודשים האחרונים, 40% ממוצע כל התקופה. אינה מהווה התחייבות.</div>
+      </section>
+
+      <section class="card" id="yoyCard">
+        <h2>מגמת פעילות שנתית</h2>
+        <p class="desc">השוואת שנים קלנדריות · השנה הנוכחית עשויה להיות חלקית</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>שנה</th><th>נפח</th><th>שינוי</th><th>תנועות</th><th>שינוי</th></tr></thead>
+            <tbody id="yoyBody"></tbody>
+          </table>
+        </div>
+        <div id="curBox"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>המלצת שובר ללקוח</h2>
+      <p class="desc" id="recDesc"></p>
+      <div id="recBody"></div>
+    </section>
+
+    <section class="card">
+      <div class="tbl-head">
+        <div>
+          <h2>כל התנועות</h2>
+          <p class="desc" id="tblDesc"></p>
+        </div>
+        <input class="search" type="search" id="txSearch" placeholder="חיפוש בתנועות…">
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>תאריך</th><th>מס׳ הזמנה</th><th>כיוון</th><th>סכום</th><th>צד נגדי</th><th>מדינה</th>
+            <th>מטרה</th><th>עמלה (₪)</th><th>סטטוס</th>
+          </tr></thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+      <div style="text-align:center"><button class="btn ghost" type="button" id="moreTx" style="display:none; margin-top:12px">הצגת כל התנועות</button></div>
+    </section>
+  </div>
+
+  <!-- ===================== tab 2 — the counterparties ===================== -->
+  <div id="viewParties" style="display:none">
+    <section class="kpis" id="pKpis"></section>
+
+    <section class="card" id="alertCard" style="display:none">
+      <h2 id="alertTitle">מוקדי תשומת לב</h2>
+      <p class="desc" id="alertDesc">שינויים בהתנהגות התשלומים · בסיס לשיחת מכירה או שימור</p>
+      <div id="alerts"></div>
+    </section>
+
+    <section class="card" id="stackCard">
+      <h2 id="stackTitle">נפח לפי חודש וצד נגדי</h2>
+      <p class="desc">כל עמודה מפוצלת לפי צד נגדי · ריחוף מציג פירוט מלא · ערכים בדולר</p>
+      <div class="chart-holder" id="stackChart"></div>
+      <div class="legend" id="stackLegend"></div>
+    </section>
+
+    <div class="two-col">
+      <section class="card" id="ctryCard">
+        <h2 id="ctryTitle">פילוח לפי מדינה</h2>
+        <p class="desc" id="ctryDesc">לאן זורם הכסף של הלקוח · נפח מצטבר בדולר</p>
+        <div id="ctryList"></div>
+        <div id="purpBox"></div>
+      </section>
+
+      <section class="card">
+        <h2>מה חשוב לדעת</h2>
+        <p class="desc">תובנות שחושבו אוטומטית מהנתונים</p>
+        <ul class="insights" id="insights"></ul>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="tbl-head">
+        <div>
+          <h2 id="supTitle">טבלת ספקים</h2>
+          <p class="desc" id="supDesc"></p>
+        </div>
+        <input class="search" type="search" id="supSearch" placeholder="חיפוש שם או מדינה…">
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="supHead"></tr></thead>
+          <tbody id="supBody"></tbody>
+        </table>
+      </div>
+      <div style="text-align:center"><button class="btn ghost" type="button" id="moreSup" style="display:none; margin-top:12px">הצגת כל השורות</button></div>
+    </section>
+
+    <section class="card" id="crossCard" style="display:none">
+      <h2>צדדים נגדיים המשותפים למספר לקוחות</h2>
+      <p class="desc">אותו גורם מופיע אצל יותר מלקוח אחד בקובץ — בסיס להפניות ולזיהוי שרשראות אספקה</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>שם</th><th>מדינה</th><th>לקוחות</th><th>נפח כולל</th><th>תנועות</th></tr></thead>
+          <tbody id="crossBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   CLIENT SUPPLYER DATA — ClearShift
+   Standalone, offline. Parses a Dynamics CRM "All Orders" .xlsx
+   (the extended view: Customer / bank accounts / countries /
+   transaction amount + currency) entirely in the browser.
+
+   What it adds over the customer-activity dashboard: the money
+   FLOW — which suppliers the client pays, in which countries,
+   how regularly, and which of those relationships are new,
+   growing, or gone quiet.
+
+   Pricing model (sales team, 2026-07): fee per transfer =
+   max(volume x pricing%, ILS 180) + 18% VAT. Pricing 0.45%
+   BUSINESS / 0.30% LARGE BUSINESS. This export has no Price
+   List column, so the effective pricing is derived from the
+   fees actually charged.
+   ============================================================ */
+
+const VAT = 1.18;
+const MIN_FEE_NET_ILS = 180;
+const LARGE_THRESHOLD_USD = 1e6;
+const TRACKS = [
+  {label:'לקוח חדש',      pay: 1000, bonus:15, pricing:0.45},
+  {label:'BUSINESS',       pay: 2000, bonus:50, pricing:0.45},
+  {label:'LARGE BUSINESS', pay: 2500, bonus:20, pricing:0.30},
+  {label:'LARGE BUSINESS', pay: 4000, bonus:35, pricing:0.30},
+  {label:'LARGE BUSINESS', pay:15000, bonus:50, pricing:0.30}
+];
+const VOUCHER_RE = /prepaid\s+voucher|voucher\s+purchase|שובר/i;
+const SWEEP_RE   = /balance\s*sweep/i;
+const CANCELED = new Set(['Canceled','Cancelled','Rejected','Failed','Expired','Reversed']);
+const DEF_USD = 3.20, DEF_EUR = 3.90;
+
+/* currency full name -> ISO code (the Name column usually carries the code too) */
+const CURNAME = {
+  'us dollar':'USD','new israeli sheqel':'ILS','israeli new shekel':'ILS','shekel':'ILS',
+  'euro':'EUR','british pound':'GBP','pound sterling':'GBP','swiss franc':'CHF',
+  'japanese yen':'JPY','canadian dollar':'CAD','australian dollar':'AUD',
+  'chinese yuan':'CNY','chinese yuan renminbi':'CNY','renminbi':'CNY','hong kong dollar':'HKD',
+  'turkish lira':'TRY','indian rupee':'INR','singapore dollar':'SGD','swedish krona':'SEK',
+  'norwegian krone':'NOK','danish krone':'DKK','polish zloty':'PLN','south african rand':'ZAR',
+  'thai baht':'THB','uae dirham':'AED','united arab emirates dirham':'AED','russian ruble':'RUB',
+  'mexican peso':'MXN','new taiwan dollar':'TWD','south korean won':'KRW','czech koruna':'CZK',
+  'hungarian forint':'HUF','romanian leu':'RON','bulgarian lev':'BGN','brazilian real':'BRL',
+  'vietnamese dong':'VND','philippine peso':'PHP','indonesian rupiah':'IDR','malaysian ringgit':'MYR',
+  'new zealand dollar':'NZD','ukrainian hryvnia':'UAH','georgian lari':'GEL'
+};
+/* approximate USD value of one unit — volume across currencies is an estimate */
+const FX_USD = {
+  USD:1, EUR:1.09, GBP:1.27, CHF:1.13, JPY:0.0067, CAD:0.73, AUD:0.66, CNY:0.14, HKD:0.128,
+  TRY:0.029, INR:0.012, SGD:0.75, SEK:0.095, NOK:0.093, DKK:0.146, PLN:0.25, ZAR:0.055,
+  THB:0.028, AED:0.272, RUB:0.011, MXN:0.05, TWD:0.031, KRW:0.00073, CZK:0.043, HUF:0.0028,
+  RON:0.22, BGN:0.56, BRL:0.18, VND:0.00004, PHP:0.017, IDR:0.000062, MYR:0.22, NZD:0.60,
+  UAH:0.024, GEL:0.37
+};
+const ISO2 = {
+  'israel':'IL','turkey':'TR','türkiye':'TR','turkiye':'TR','china':'CN','india':'IN',
+  'united states':'US','united states of america':'US','usa':'US','germany':'DE','italy':'IT',
+  'france':'FR','spain':'ES','netherlands':'NL','belgium':'BE','united kingdom':'GB',
+  'great britain':'GB','switzerland':'CH','austria':'AT','poland':'PL','czech republic':'CZ',
+  'czechia':'CZ','hungary':'HU','romania':'RO','bulgaria':'BG','greece':'GR','portugal':'PT',
+  'ireland':'IE','denmark':'DK','sweden':'SE','norway':'NO','finland':'FI','estonia':'EE',
+  'latvia':'LV','lithuania':'LT','singapore':'SG','hong kong':'HK','japan':'JP',
+  'south korea':'KR','korea':'KR','korea, republic of':'KR','taiwan':'TW','vietnam':'VN',
+  'viet nam':'VN','thailand':'TH','malaysia':'MY','indonesia':'ID','philippines':'PH',
+  'united arab emirates':'AE','saudi arabia':'SA','jordan':'JO','egypt':'EG','morocco':'MA',
+  'south africa':'ZA','kenya':'KE','nigeria':'NG','canada':'CA','mexico':'MX','brazil':'BR',
+  'argentina':'AR','chile':'CL','colombia':'CO','peru':'PE','australia':'AU','new zealand':'NZ',
+  'russia':'RU','russian federation':'RU','ukraine':'UA','georgia':'GE','cyprus':'CY',
+  'malta':'MT','luxembourg':'LU','slovakia':'SK','slovenia':'SI','croatia':'HR','serbia':'RS',
+  'bosnia and herzegovina':'BA','albania':'AL','north macedonia':'MK','moldova':'MD',
+  'belarus':'BY','kazakhstan':'KZ','uzbekistan':'UZ','azerbaijan':'AZ','armenia':'AM',
+  'pakistan':'PK','bangladesh':'BD','sri lanka':'LK','nepal':'NP','iceland':'IS',
+  'panama':'PA','costa rica':'CR','guatemala':'GT','uruguay':'UY','paraguay':'PY',
+  'ecuador':'EC','dominican republic':'DO','british virgin islands':'VG','cayman islands':'KY',
+  'seychelles':'SC','mauritius':'MU','marshall islands':'MH','liechtenstein':'LI','monaco':'MC',
+  'hong kong sar':'HK','macao sar':'MO','macau':'MO','macao':'MO','netherlands (holland)':'NL'
+};
+/* Dynamics writes some countries as "Hong Kong SAR", "Korea, Republic of" etc. */
+const iso2 = c => {
+  const s = String(c||'').trim().toLowerCase();
+  return ISO2[s] || ISO2[s.replace(/\s+sar$/,'').replace(/,.*$/,'').trim()] || '';
+};
+const SUP_COLORS = ['#167398','#4aa8cc','#5fbf9a','#e0a34a','#c96f8c','#8a7fd1','#4f9c6b','#d1785a'];
+const OTHER_COLOR = '#9fb6c0';
+
+/* ---------- zip / xlsx parsing ---------- */
+function readZip(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let i = u8.length - 22;
+  while (i >= 0 && dv.getUint32(i, true) !== 0x06054b50) i--;
+  if (i < 0) throw new Error('הקובץ אינו קובץ xlsx תקין');
+  const count = dv.getUint16(i + 10, true);
+  let off = dv.getUint32(i + 16, true);
+  const files = {};
+  for (let k = 0; k < count; k++){
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const csize  = dv.getUint32(off + 20, true);
+    const nlen   = dv.getUint16(off + 28, true);
+    const elen   = dv.getUint16(off + 30, true);
+    const clen   = dv.getUint16(off + 32, true);
+    const lho    = dv.getUint32(off + 42, true);
+    const name   = new TextDecoder().decode(u8.subarray(off + 46, off + 46 + nlen));
+    const lnlen  = dv.getUint16(lho + 26, true);
+    const lelen  = dv.getUint16(lho + 28, true);
+    const start  = lho + 30 + lnlen + lelen;
+    files[name] = {method, bytes: u8.subarray(start, start + csize)};
+    off += 46 + nlen + elen + clen;
+  }
+  return files;
+}
+async function entryText(f){
+  if (!f) return null;
+  if (f.method === 0) return new TextDecoder().decode(f.bytes);
+  const stream = new Blob([f.bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return await new Response(stream).text();
+}
+function cellText(c){
+  const ts = c.getElementsByTagNameNS('*','t');
+  let s = '';
+  for (const t of ts) s += t.textContent;
+  return s;
+}
+function parseSheet(xml, shared){
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const rows = doc.getElementsByTagNameNS('*','row');
+  const grid = {};
+  for (const row of rows){
+    let auto = 0;
+    const rowNum = +(row.getAttribute('r') || 0);
+    for (const c of row.getElementsByTagNameNS('*','c')){
+      const ref = c.getAttribute('r') || '';
+      let col = ref.replace(/\d+/g,''), rn = +ref.replace(/\D+/g,'');
+      if (!col){ col = colName(auto); rn = rowNum; }          /* some exports omit r= */
+      auto = colIndex(col) + 1;
+      if (!col || !rn) continue;
+      const t = c.getAttribute('t');
+      let v = '';
+      if (t === 'inlineStr') v = cellText(c);
+      else {
+        const vEl = c.getElementsByTagNameNS('*','v')[0];
+        if (vEl){
+          v = vEl.textContent;
+          if (t === 's' && shared) v = shared[+v] ?? '';
+        }
+      }
+      (grid[rn] = grid[rn] || {})[col] = v;
+    }
+  }
+  return grid;
+}
+function colName(i){ let s=''; i++; while(i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=(i-m-1)/26; } return s; }
+function colIndex(s){ let n=0; for (const ch of s) n = n*26 + (ch.charCodeAt(0)-64); return n-1; }
+function oaToIso(serial){
+  const ms = Math.round((serial - 25569) * 86400000);
+  const dt = new Date(ms);
+  return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth()+1).padStart(2,'0') + '-' + String(dt.getUTCDate()).padStart(2,'0');
+}
+const num = v => { const n = parseFloat(String(v).replace(/[, ]/g,'')); return isFinite(n) ? n : 0; };
+
+async function parseXlsx(buf, fileName, lastModified){
+  const files = readZip(buf);
+  let shared = null;
+  const ssXml = await entryText(files['xl/sharedStrings.xml']);
+  if (ssXml){
+    const doc = new DOMParser().parseFromString(ssXml, 'application/xml');
+    shared = [...doc.getElementsByTagNameNS('*','si')].map(cellText);
+  }
+  const sheetNames = Object.keys(files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n));
+  let grid = null, hdr = null;
+  for (const sn of sheetNames){
+    const g = parseSheet(await entryText(files[sn]), shared);
+    if (!g[1]) continue;
+    const h = {};
+    for (const [col, val] of Object.entries(g[1])) h[String(val).trim()] = col;
+    if (h['Name'] && h['Created On']) { grid = g; hdr = h; break; }
+  }
+  if (!grid) throw new Error('לא נמצא גיליון עם העמודות Name ו־Created On.\n' +
+    'התוכנה מזהה את הקובץ לפי תוכנו ולא לפי שמו — ודאו שזה ייצוא של תצוגת הזמנות מ־Dynamics,\n' +
+    'ושהעמודות Name ו־Created On נכללות בתצוגה שיוצאה.');
+
+  /* tolerate small header-name variations between Dynamics views */
+  const find = (...cands) => {
+    for (const c of cands){ if (hdr[c]) return hdr[c]; }
+    const keys = Object.keys(hdr);
+    for (const c of cands){
+      const k = keys.find(k => k.toLowerCase().indexOf(c.toLowerCase()) === 0);
+      if (k) return hdr[k];
+    }
+    return null;
+  };
+  const C = {
+    customer: find('Customer','Account Name'),
+    profile:  find('Account Profile (Customer) (Account)','Account Profile'),
+    name:     find('Name'),
+    created:  find('Created On'),
+    source:   find('Order Source'),
+    status:   find('Order Status','Status'),
+    amount:   find('Transaction Amount','Net Delivery Amount'),
+    total:    find('Total Amount'),
+    srcAcct:  find('Source Bank Account'),
+    srcCtry:  find('Country (Source Bank Account) (Bank Account)','Country (Source Bank Account)'),
+    srcOwner: find('Owning Party (Source Bank Account) (Bank Account)','Owning Party (Source Bank Account)'),
+    dstAcct:  find('Destination Bank Account'),
+    dstCtry:  find('Country (Destination Bank Account) (Bank Account)','Country (Destination Bank Account)'),
+    dstOwner: find('Owning Party (Destination Bank Account) (Bank Account)','Owning Party (Destination Bank Account)'),
+    subtype:  find('Transfer Subtype (Destination Bank Account) (Bank Account)','Transfer Subtype (Destination Bank Account)','Transfer Subtype'),
+    bizDesc:  find('Business Description (Destination Bank Account) (Bank Account)','Business Description (Destination Bank Account)','Business Description'),
+    website:  find('Website (Destination Bank Account) (Bank Account)','Website (Destination Bank Account)','Website'),
+    currency: find('Transaction Currency','Delivery Currency'),
+    priceList:find('Price List')
+  };
+  const hasSupplier = !!C.dstAcct;
+  const hasFee = !!C.total;
+  const g = (r, col) => col ? String(grid[r][col] ?? '').trim() : '';
+
+  const rows = [];
+  const rowNums = Object.keys(grid).map(Number).filter(n => n >= 2).sort((a,b)=>a-b);
+  for (const r of rowNums){
+    const name = g(r, C.name);
+    if (!name) continue;
+    const m = name.match(/#([\dA-Za-z-]+)\s*-\s*(.+?)\s*-\s*([\d,]+(?:\.\d+)?)\s*([A-Z]{3})/);
+    const vm = !m && name.match(/#([\dA-Za-z-]+)\s*-/);
+    const createdRaw = g(r, C.created);
+    let dateIso = null;
+    if (/^\d+(\.\d+)?$/.test(createdRaw)) dateIso = oaToIso(parseFloat(createdRaw));
+    else if (createdRaw){ const p = new Date(createdRaw); if (!isNaN(p)) dateIso = p.toISOString().slice(0,10); }
+    if (!dateIso) continue;
+    const curRaw = g(r, C.currency);
+    const colCur = CURNAME[curRaw.toLowerCase()] || (/^[A-Z]{3}$/.test(curRaw) ? curRaw : '');
+    const colAmt = C.amount ? num(g(r, C.amount)) : 0;
+    /* The amount and the currency MUST come from the same pair of fields.
+       "Name" carries the transacted amount together with its currency; the
+       "Net Delivery Amount / Delivery Currency" pair is what the customer
+       actually receives after conversion. For an exporter the two differ
+       (29,236 EUR received from the payer -> 101,332 ILS delivered), and
+       mixing them inflated the turnover ~3.5x. Prefer the Name pair. */
+    const amtVal = m ? num(m[3]) : colAmt;
+    const cur    = m ? m[4] : colCur;
+    rows.push({
+      num: m ? m[1] : (vm ? vm[1] : ''),
+      customer: g(r, C.customer) || (m ? m[2].replace(/''/g,'״') : ''),
+      profile: g(r, C.profile),
+      amount: amtVal,
+      currency: cur,
+      delivAmount: colAmt,
+      delivCurrency: colCur,
+      date: dateIso,
+      fee: C.total ? num(g(r, C.total)) : 0,
+      source: g(r, C.source),
+      status: g(r, C.status),
+      srcAcct: g(r, C.srcAcct),
+      srcCtry: g(r, C.srcCtry),
+      srcOwner: g(r, C.srcOwner),
+      dstAcct: g(r, C.dstAcct),
+      dstCtry: g(r, C.dstCtry),
+      dstOwner: g(r, C.dstOwner),
+      subtype: g(r, C.subtype),
+      bizDesc: g(r, C.bizDesc),
+      website: g(r, C.website),
+      priceList: g(r, C.priceList),
+      raw: name
+    });
+  }
+  if (!rows.length) throw new Error('לא נמצאו תנועות בקובץ.');
+
+  /* "As of" comes from the CONTENT first: everyone on the team renames their
+     export, so the filename is only a hint and never a requirement. The newest
+     row is the floor; a filename date or the file's own timestamp is accepted
+     only if it sits between that floor and today. */
+  const maxDate = rows.reduce((mx,o)=> o.date > mx ? o.date : mx, rows[0].date);
+  const today = new Date().toISOString().slice(0,10);
+  const cands = [];
+  const fm = fileName.match(/(\d{2})-(\d{2})-(\d{4})/);
+  if (fm) cands.push(fm[3] + '-' + fm[2] + '-' + fm[1]);
+  if (lastModified) cands.push(new Date(lastModified).toISOString().slice(0,10));
+  const valid = cands.filter(x => x >= maxDate && x <= today).sort();
+  const asOf = valid.length ? valid[0] : maxDate;
+
+  return { rows, meta: { asOf, sourceFile: fileName, hasSupplier, hasFee } };
+}
+
+/* ---------- helpers ---------- */
+const DAY = 86400000;
+const d = s => new Date(s + 'T12:00:00');
+const nfIL = new Intl.NumberFormat('he-IL', {maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2});
+const SYM = {USD:'$', EUR:'€', GBP:'£', ILS:'₪', CHF:'₣', JPY:'¥', CAD:'C$', AUD:'A$'};
+const sym = c => SYM[c] ?? (c ? c + ' ' : '');
+const ils = v => '₪' + nfIL.format(Math.round(v));
+const usd$ = v => '$' + nfIL.format(Math.round(v));
+const usdK = v => v >= 1e6 ? '$' + (v/1e6).toFixed(2) + 'M' : (v >= 1000 ? '$' + Math.round(v/1000) + 'K' : '$' + Math.round(v));
+const MON = ['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'];
+const fmtD = s => { const t = d(s); return String(t.getDate()).padStart(2,'0') + '.' + String(t.getMonth()+1).padStart(2,'0') + '.' + t.getFullYear(); };
+const isoOf = t => t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+const monLbl = key => { const [y,m] = key.split('-'); return MON[+m-1] + ' ' + y.slice(2); };
+const median = a => { const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const pctl = (a,q) => { const s=[...a].sort((x,y)=>x-y); return s[Math.min(s.length-1, Math.floor(q*s.length))]; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s||'').toLowerCase()
+  .replace(/[.,'"״׳()\[\]]/g,' ')
+  .replace(/\b(ltd|limited|inc|llc|co|corp|corporation|gmbh|s\.?a|srl|bv|nv|plc|pte|sti|as|ag|kft|sp z o o)\b/g,' ')
+  .replace(/בע"?מ|בעמ/g,' ')
+  .replace(/\s+/g,' ').trim();
+const topShare = arr => {
+  const c = {}; arr.forEach(v => { if(v) c[v] = (c[v]||0)+1; });
+  const e = Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+  return e ? {name:e[0], share:e[1]/arr.length} : {name:'—', share:0};
+};
+const ccTag = c => { const k = iso2(c); return c ? '<span class="cc">' + esc(k || String(c).slice(0,3).toUpperCase()) + '</span>' : ''; };
+/* customer profile (Dynamics "Account Profile") in Hebrew */
+const PROFILE_HE = {import:'יבואן (Import)', export:'יצואן (Export)', 'import & export':'יבואן ויצואן',
+  'import and export':'יבואן ויצואן', services:'שירותים', service:'שירותים', investment:'השקעות',
+  individual:'לקוח פרטי', private:'לקוח פרטי', ecommerce:'מסחר מקוון', 'e-commerce':'מסחר מקוון'};
+const profileHe = p => PROFILE_HE[String(p||'').trim().toLowerCase()] || p;
+/* payment purpose (Dynamics "Transfer Subtype") in Hebrew */
+const PURPOSE_HE = {'inventory purchase':'רכישת סחורה', 'payment for business services':'תשלום עבור שירותים עסקיים',
+  'payment for services':'תשלום עבור שירותים', 'salary':'שכר', 'dividend':'דיבידנד', 'loan':'הלוואה',
+  'investment':'השקעה', 'rent':'שכירות', 'royalties':'תמלוגים', 'freight':'הובלה ושילוח',
+  'לא מסווג':'לא מסווג'};
+const purposeHe = p => PURPOSE_HE[String(p||'').trim().toLowerCase()] || p;
+/* a safe outbound link — only http(s), opened in a new tab */
+const safeUrl = u => {
+  const s = String(u||'').trim();
+  if (!s) return '';
+  const withScheme = /^https?:\/\//i.test(s) ? s : 'https://' + s;
+  try { const p = new URL(withScheme); return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : ''; }
+  catch(e){ return ''; }
+};
+const searchUrl = (name, country) =>
+  'https://www.google.com/search?q=' + encodeURIComponent(String(name||'') + ' ' + String(country||'') + ' company');
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./,''); } catch(e){ return u; } };
+/* a client can run several transfers on the same day — a median gap of 0 is not "every 0 days" */
+const cadenceTxt = g => g < 1 ? 'מספר תנועות באותו יום' : 'מחזור אופייני ' + Math.round(g) + ' ימים';
+
+/* ---------- charts ---------- */
+function stackChart(holderId, months, keys, meta){
+  const holder = document.getElementById(holderId);
+  const tipId = holderId + 'Tip';
+  holder.innerHTML = '<div class="tooltip" id="' + tipId + '"></div>';
+  const padL = 58, padR = 10, padT = 26, padB = 34;
+  const W = 1060, H = 250 + padB;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const max = Math.max(...months.map(b=>b.total)) * 1.1 || 1;
+  const bw = iw / months.length;
+  const barW = Math.min(48, bw * 0.66);
+  const every = Math.ceil(months.length / 18);
+  let g = '';
+  for (let i=1;i<=4;i++){
+    const v = max*i/4, y = padT + ih - ih*i/4;
+    g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+y+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/>';
+    g += '<text class="axis-t" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+usdK(v)+'</text>';
+  }
+  g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+(padT+ih)+'" y2="'+(padT+ih)+'" stroke="var(--baseline)" stroke-width="1"/>';
+  months.forEach((b,i)=>{
+    const x = padL + bw*i + (bw-barW)/2;
+    let yCur = padT + ih;
+    keys.forEach(k => {
+      const v = b.parts[k.key] || 0;
+      if (v <= 0) return;
+      const h = Math.max(1.5, ih * v/max);
+      yCur -= h;
+      g += '<rect x="'+x+'" y="'+yCur+'" width="'+barW+'" height="'+h+'" fill="'+k.color+'"/>';
+    });
+    g += '<rect class="bar" data-i="'+i+'" x="'+x+'" y="'+padT+'" width="'+barW+'" height="'+ih+'" fill="transparent"/>';
+    if (b.total > 0)
+      g += '<text class="bar-label" x="'+(x+barW/2)+'" y="'+(yCur-6)+'" text-anchor="middle">'+usdK(b.total)+'</text>';
+    if (i % every === 0 || i === months.length-1)
+      g += '<text class="axis-t" x="'+(x+barW/2)+'" y="'+(padT+ih+16)+'" text-anchor="middle">'+monLbl(b.key)+'</text>';
+  });
+  holder.insertAdjacentHTML('beforeend',
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="נפח תשלומים לספקים לפי חודש">'+g+'</svg>');
+  const tip = document.getElementById(tipId);
+  holder.querySelectorAll('.bar').forEach(r=>{
+    r.addEventListener('mouseenter', ()=>{
+      const b = months[+r.dataset.i];
+      const lines = keys.filter(k => (b.parts[k.key]||0) > 0)
+        .sort((a,z)=> (b.parts[z.key]||0) - (b.parts[a.key]||0))
+        .map(k => '<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:'+k.color+'"></span> ' +
+                  esc(k.label) + ': <b>' + usdK(b.parts[k.key]) + '</b>');
+      tip.innerHTML = '<b>' + monLbl(b.key) + '</b> — ' + usdK(b.total) + ' · ' + b.count + ' תנועות' +
+        (lines.length ? '<br>' + lines.join('<br>') : '');
+      tip.style.opacity = 1;
+      const hb = holder.getBoundingClientRect(), rb = r.getBoundingClientRect();
+      const lx = rb.left - hb.left + rb.width/2;
+      tip.style.left = Math.max(110, Math.min(hb.width-110, lx)) + 'px';
+      tip.style.top = (rb.top - hb.top + 10) + 'px';
+      tip.style.transform = 'translate(-50%,0)';
+    });
+    r.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+  });
+}
+/* single-series monthly bars with quarter brackets underneath — the turnover view */
+function barChart(holderId, months, opts){
+  const holder = document.getElementById(holderId);
+  const tipId = holderId + 'Tip';
+  holder.innerHTML = '<div class="tooltip" id="' + tipId + '"></div>';
+  const padL = 58, padR = 10, padT = 28, padB = 72;
+  const W = 1060, H = 240 + padB;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const max = Math.max(...months.map(b=>b.total)) * 1.1 || 1;
+  const bw = iw / months.length;
+  const barW = Math.min(46, bw * 0.62);
+  const every = Math.ceil(months.length / 16);
+  let g = '';
+  for (let i=1;i<=4;i++){
+    const v = max*i/4, y = padT + ih - ih*i/4;
+    g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+y+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/>';
+    g += '<text class="axis-t" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+usdK(v)+'</text>';
+  }
+  g += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+(padT+ih)+'" y2="'+(padT+ih)+'" stroke="var(--baseline)" stroke-width="1"/>';
+  months.forEach((b,i)=>{
+    const x = padL + bw*i + (bw-barW)/2;
+    const h = Math.max(b.total > 0 ? 2 : 0, ih * b.total/max);
+    const y = padT + ih - h;
+    g += '<rect class="bar" data-i="'+i+'" x="'+x+'" y="'+y+'" width="'+barW+'" height="'+h+'" rx="4" ry="4" fill="var(--vol)"/>';
+    if ((i % every === 0 || i === months.length-1) && b.total > 0)
+      g += '<text class="bar-label" x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle">'+usdK(b.total)+'</text>';
+    if (i % every === 0)
+      g += '<text class="axis-t" x="'+(x+barW/2)+'" y="'+(padT+ih+16)+'" text-anchor="middle">'+monLbl(b.key)+'</text>';
+  });
+  /* quarter brackets: "25A · $180K" */
+  const QL = ['A','B','C','D'];
+  const grs = [];
+  months.forEach((b,i)=>{
+    const [y,m] = b.key.split('-').map(Number);
+    const qk = y + '-' + Math.floor((m-1)/3);
+    let gr = grs[grs.length-1];
+    if (!gr || gr.qk !== qk){ gr = {qk, y, q: Math.floor((m-1)/3), i0:i, i1:i, sum:0}; grs.push(gr); }
+    gr.i1 = i; gr.sum += b.total;
+  });
+  const yLine = padT + ih + 28, yText = padT + ih + 46;
+  for (const gr of grs){
+    const x0 = padL + bw*gr.i0 + (bw-barW)/2;
+    const x1 = padL + bw*gr.i1 + (bw+barW)/2;
+    g += '<line x1="'+x0+'" x2="'+x1+'" y1="'+yLine+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+      +  '<line x1="'+x0+'" x2="'+x0+'" y1="'+(yLine-5)+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+      +  '<line x1="'+x1+'" x2="'+x1+'" y1="'+(yLine-5)+'" y2="'+yLine+'" stroke="var(--accent-border)" stroke-width="1.5"/>'
+      +  '<text x="'+((x0+x1)/2)+'" y="'+yText+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--accent-ink)" direction="ltr">'
+      +  String(gr.y).slice(2) + QL[gr.q] + ' · ' + usdK(gr.sum) + '</text>';
+  }
+  holder.insertAdjacentHTML('beforeend',
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+opts.aria+'">'+g+'</svg>');
+  const tip = document.getElementById(tipId);
+  holder.querySelectorAll('.bar').forEach(r=>{
+    r.addEventListener('mouseenter', ()=>{
+      const b = months[+r.dataset.i];
+      tip.innerHTML = '<b>' + monLbl(b.key) + '</b><br>נפח: <b>' + usdK(b.total) + '</b><br>תנועות: <b>' + b.count + '</b>';
+      tip.style.opacity = 1;
+      const hb = holder.getBoundingClientRect(), rb = r.getBoundingClientRect();
+      const lx = rb.left - hb.left + rb.width/2;
+      tip.style.left = Math.max(80, Math.min(hb.width-80, lx)) + 'px';
+      tip.style.top = (rb.top - hb.top - 8) + 'px';
+      tip.style.transform = 'translate(-50%,-100%)';
+    });
+    r.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+  });
+}
+function sparkline(series, w, h){
+  const max = Math.max(...series.map(s=>s.v)) || 1;
+  const bw = w / series.length;
+  const barW = Math.max(2, Math.min(14, bw*0.7));
+  let g = '';
+  series.forEach((s,i)=>{
+    const bh = Math.max(s.v > 0 ? 2 : 0, (h-14) * s.v/max);
+    const x = bw*i + (bw-barW)/2;
+    g += '<rect x="'+x+'" y="'+(h-14-bh)+'" width="'+barW+'" height="'+bh+'" rx="2" fill="var(--vol)" opacity="'+(s.v>0?0.9:0.2)+'"><title>'+monLbl(s.key)+': '+usdK(s.v)+'</title></rect>';
+  });
+  g += '<line x1="0" x2="'+w+'" y1="'+(h-14)+'" y2="'+(h-14)+'" stroke="var(--baseline)" stroke-width="1"/>';
+  if (series.length){
+    g += '<text class="axis-t" x="0" y="'+(h-2)+'">'+monLbl(series[0].key)+'</text>';
+    g += '<text class="axis-t" x="'+w+'" y="'+(h-2)+'" text-anchor="end">'+monLbl(series[series.length-1].key)+'</text>';
+  }
+  return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:'+w+'px">'+g+'</svg>';
+}
+
+/* ---------- state ---------- */
+const ST = {
+  raw: null, meta: null, cust: null, an: null, view:'activity',
+  sortKey:'vol', sortDir:-1, q:'', expanded:new Set(), txAll:false, txQ:'', supAll:false
+};
+function setView(v){
+  ST.view = v;
+  document.getElementById('viewActivity').style.display = v === 'activity' ? '' : 'none';
+  document.getElementById('viewParties').style.display  = v === 'parties'  ? '' : 'none';
+  document.querySelectorAll('#tabs .tab').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  window.scrollTo(0,0);
+}
+
+/* ---------- direction & counterparty ----------
+   ClearShift customers sit on both sides of the flow:
+     importer  — the client PAYS a supplier abroad   (counterparty = destination)
+     exporter  — the client RECEIVES from a payer     (counterparty = source)
+   Dynamics states it explicitly: "Owning Party (Destination) = Self" means the
+   destination account belongs to the client, so the money is coming IN. Older
+   exports have no such column, so fall back to matching the customer's name.
+   Getting this wrong is not cosmetic: the previous build treated every incoming
+   payment as an internal transfer and dropped the whole exporter book. */
+const SELF_RE = /self|same\s*party/i;
+function ownAccounts(rows){
+  const own = {};
+  for (const o of rows){
+    const set = own[o.customer] = own[o.customer] || new Set();
+    if (o.customer) set.add(norm(o.customer));
+    /* "Owning Party = Self" on either side names an account of the client */
+    if (o.dstAcct && SELF_RE.test(o.dstOwner || '')) set.add(norm(o.dstAcct));
+    if (o.srcAcct && SELF_RE.test(o.srcOwner || '')) set.add(norm(o.srcAcct));
+  }
+  /* fallback for exports without the Owning Party columns: on a row that pays a
+     third party, the source account must be the client's own */
+  for (const o of rows){
+    const set = own[o.customer];
+    if (!set || !o.srcAcct || SELF_RE.test(o.dstOwner || '')) continue;
+    if (!set.has(norm(o.dstAcct))) set.add(norm(o.srcAcct));
+  }
+  return own;
+}
+function classify(o, ownSet){
+  const selfSrc = SELF_RE.test(o.srcOwner || '');
+  const selfDst = SELF_RE.test(o.dstOwner || '');
+  /* when Dynamics states the owner outright, believe it */
+  if (selfSrc && !selfDst && o.dstAcct) return {dir:'out', party:o.dstAcct, country:o.dstCtry};
+  if (selfDst && !selfSrc && o.srcAcct) return {dir:'in',  party:o.srcAcct, country:o.srcCtry};
+  const dstOwn = !o.dstAcct || selfDst || ownSet.has(norm(o.dstAcct));
+  const srcOwn = !o.srcAcct || selfSrc || ownSet.has(norm(o.srcAcct));
+  if (dstOwn && srcOwn) return {dir:'internal', party:'', country:''};
+  if (dstOwn)  return {dir:'in',  party:o.srcAcct, country:o.srcCtry};
+  return {dir:'out', party:o.dstAcct, country:o.dstCtry};
+}
+function analyze(rows, meta, rUsd, rEur){
+  const fxUsd = c => {
+    if (!c) return 0;
+    if (c === 'ILS') return 1/rUsd;
+    if (c === 'EUR') return rEur/rUsd;
+    return FX_USD[c] ?? 0;
+  };
+  const volUsd = o => o.amount > 0 && o.currency ? o.amount * fxUsd(o.currency) : 0;
+  const feeUsdNet = o => o.fee / VAT / rUsd;
+
+  const asOf = d(meta.asOf);
+  const all = [...rows].sort((a,b)=> a.date < b.date ? -1 : 1);
+  const vouchers = all.filter(o => VOUCHER_RE.test(o.raw) && !CANCELED.has(o.status));
+  const trades = all.filter(o => !VOUCHER_RE.test(o.raw));
+  const canceled = trades.filter(o => CANCELED.has(o.status));
+  const base = trades.filter(o => !CANCELED.has(o.status));
+
+  /* accounts each customer owns: anything used as a SOURCE account, plus its own name.
+     Kept per customer so that in all-clients mode one client's account is not
+     mistaken for another client's own account. */
+  const own = ownAccounts(base.concat(canceled));
+  const ownOf = o => own[o.customer] || new Set();
+  for (const o of all) o.cls = classify(o, ownOf(o));
+  const payments = base.filter(o => o.cls.dir !== 'internal');   /* real counterparty flows */
+  const internal = base.filter(o => o.cls.dir === 'internal');
+  const nIn  = payments.filter(o => o.cls.dir === 'in').length;
+  const nOut = payments.filter(o => o.cls.dir === 'out').length;
+  /* which word the UI should use for the counterparties */
+  const flow = nIn && nOut ? 'both' : (nIn ? 'in' : 'out');
+  const partyWord = flow === 'in' ? 'משלמים' : flow === 'out' ? 'ספקים' : 'ספקים ומשלמים';
+
+  /* ---- monthly buckets ---- */
+  const firstDate = base.length ? base[0].date : meta.asOf;
+  const months = [];
+  { let y = +firstDate.slice(0,4), m = +firstDate.slice(5,7)-1;
+    while (y < asOf.getFullYear() || (y === asOf.getFullYear() && m <= asOf.getMonth())){
+      months.push({key: y + '-' + String(m+1).padStart(2,'0'), total:0, count:0, fees:0, parts:{}});
+      m++; if (m === 12){ m = 0; y++; }
+    } }
+  const byKey = Object.fromEntries(months.map(b => [b.key, b]));
+
+  /* ---- suppliers ---- */
+  const sup = {};
+  for (const o of payments){
+    const key = norm(o.cls.party);
+    const s = sup[key] = sup[key] || {
+      key, names:{}, country:o.cls.country || '', ctry:{}, rows:[], vol:0, fees:0, cur:{}, clients:{}, months:{},
+      subs:{}, website:'', desc:'', owner:'', dirs:{}
+    };
+    s.names[o.cls.party] = (s.names[o.cls.party]||0)+1;
+    s.dirs[o.cls.dir] = (s.dirs[o.cls.dir]||0)+1;
+    if (o.cls.country) s.ctry[o.cls.country] = (s.ctry[o.cls.country]||0)+1;
+    /* the description/website/subtype fields in Dynamics describe the DESTINATION
+       account, so they only tell us about the counterparty on outgoing rows —
+       on an incoming one they describe the client's own account. */
+    if (o.cls.dir === 'out'){
+      if (o.subtype) s.subs[o.subtype] = (s.subs[o.subtype]||0)+1;
+      if (o.website && !s.website) s.website = o.website;
+      if (o.bizDesc && !s.desc) s.desc = o.bizDesc;
+      if (o.dstOwner && !s.owner) s.owner = o.dstOwner;
+    }
+    s.rows.push(o);
+    const v = volUsd(o);
+    s.vol += v; s.fees += feeUsdNet(o);
+    if (o.currency) s.cur[o.currency] = (s.cur[o.currency]||0) + (o.amount||0);
+    if (o.customer) s.clients[o.customer] = (s.clients[o.customer]||0)+1;
+    const mk = o.date.slice(0,7);
+    s.months[mk] = (s.months[mk]||0) + v;
+    const b = byKey[mk];
+    if (b){ b.total += v; b.count++; b.fees += feeUsdNet(o); }
+  }
+  for (const o of internal){
+    const b = byKey[o.date.slice(0,7)];
+    if (b) b.fees += feeUsdNet(o);
+  }
+
+  const spanDays = Math.max(1, (asOf - d(firstDate))/DAY);
+  const sups = Object.values(sup).map(s => {
+    const dates = s.rows.map(r=>r.date).sort();
+    const gaps = [];
+    for (let i=1;i<dates.length;i++) gaps.push((d(dates[i]) - d(dates[i-1]))/DAY);
+    const med = gaps.length ? median(gaps) : null;
+    const last = dates[dates.length-1], first = dates[0];
+    const since = Math.round((asOf - d(last))/DAY);
+    const ageDays = Math.round((asOf - d(first))/DAY);
+    let status = 'active', stLbl = 'פעיל';
+    const lim1 = med != null ? Math.max(med*1.6, 45) : 120;
+    const lim2 = med != null ? Math.max(med*3, 120) : 210;
+    if (since > lim2){ status = 'dormant'; stLbl = 'נרדם'; }
+    else if (since > lim1){ status = 'slow'; stLbl = 'מאט'; }
+    /* "new" only makes sense against the client's own history in this file:
+       if the whole export covers 5 months, every supplier is 5 months old. */
+    const isNew = ageDays <= 180 && ageDays <= spanDays * 0.6;
+    return {
+      ...s,
+      name: Object.entries(s.names).sort((a,b)=>b[1]-a[1])[0][0],
+      country: Object.entries(s.ctry).sort((a,b)=>b[1]-a[1])[0]?.[0] || '',
+      subtype: Object.entries(s.subs).sort((a,b)=>b[1]-a[1])[0]?.[0] || '',
+      dir: Object.entries(s.dirs).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'out',
+      count: s.rows.length, first, last, since, ageDays, med, status, stLbl, isNew,
+      avg: s.rows.length ? s.vol / s.rows.length : 0,
+      next: med != null ? isoOf(new Date(d(last).getTime() + med*DAY)) : null,
+      nClients: Object.keys(s.clients).length
+    };
+  }).sort((a,b)=>b.vol-a.vol);
+
+  const totalVol = sups.reduce((s,x)=>s+x.vol,0);
+  sups.forEach(s => s.share = totalVol > 0 ? s.vol/totalVol : 0);
+
+  /* countries */
+  const ctry = {};
+  for (const s of sups){
+    const c = s.country || 'לא ידוע';
+    const t = ctry[c] = ctry[c] || {name:c, vol:0, count:0, sups:0};
+    t.vol += s.vol; t.count += s.count; t.sups++;
+  }
+  const countries = Object.values(ctry).sort((a,b)=>b.vol-a.vol);
+
+  /* payment purpose (Transfer Subtype) — what the money is actually for */
+  const purp = {};
+  for (const o of payments){
+    if (o.cls.dir !== 'out') continue;          /* subtype describes the destination */
+    const k = o.subtype || 'לא מסווג';
+    const t = purp[k] = purp[k] || {name:k, vol:0, count:0, sups:new Set()};
+    t.vol += volUsd(o); t.count++; t.sups.add(norm(o.cls.party));
+  }
+  const purposes = Object.values(purp).map(p => ({...p, sups:p.sups.size})).sort((a,b)=>b.vol-a.vol);
+  /* customer profile (יבואן / יצואן …) — same for every row of a customer */
+  const profile = (base.find(o=>o.profile) || {}).profile || '';
+  /* destination accounts held by someone other than the supplier itself */
+  const thirdParty = payments.filter(o => /3rd\s*party|third\s*party/i.test(o.dstOwner || '')).length;
+
+  /* stacked-chart series: top suppliers + other */
+  const topN = sups.slice(0, 6);
+  const keys = topN.map((s,i)=>({key:s.key, label:s.name, color:SUP_COLORS[i % SUP_COLORS.length]}));
+  const otherKeys = new Set(sups.slice(6).map(s=>s.key));
+  if (otherKeys.size) keys.push({key:'__other', label:'ספקים אחרים (' + otherKeys.size + ')', color:OTHER_COLOR});
+  for (const s of sups){
+    const bucket = otherKeys.has(s.key) ? '__other' : s.key;
+    for (const [mk,v] of Object.entries(s.months)){
+      const b = byKey[mk];
+      if (b) b.parts[bucket] = (b.parts[bucket]||0) + v;
+    }
+  }
+
+  /* effective pricing from the fees actually charged */
+  const priced = base.filter(o => o.fee > 0 && volUsd(o) > 0)
+    .map(o => (o.fee/VAT/rUsd) / volUsd(o) * 100);
+  const effPct = priced.length ? median(priced) : null;
+  const recent = base.filter(o => o.fee > 0 && volUsd(o) > 0).slice(-5)
+    .map(o => (o.fee/VAT/rUsd) / volUsd(o) * 100);
+  const effRecent = recent.length ? median(recent) : null;
+  const snap = p => p == null ? null : [0.25,0.30,0.43,0.45].reduce((a,b)=> Math.abs(b-p) < Math.abs(a-p) ? b : a);
+  const curPricing = snap(effRecent) ?? 0.45;
+
+  /* ---- turnover ----
+     The client's turnover is NOT the same set of rows as the counterparty
+     analysis. Conversions and deposits carry no destination account, so they
+     have no counterparty to attribute — but they ARE the client's activity and
+     ClearShift earns on them. The "מחזור" tab therefore counts every settled,
+     non-voucher row; the counterparty tab keeps only the attributed ones. */
+  const spanMonths = Math.max(1, (asOf - d(firstDate))/DAY/30.44);
+  const tenureYears = spanMonths/12;
+  const monthsAll = months.map(b => ({key:b.key, total:0, count:0}));
+  const byKeyAll = Object.fromEntries(monthsAll.map(b => [b.key, b]));
+  for (const o of base){
+    const b = byKeyAll[o.date.slice(0,7)];
+    if (b){ b.total += volUsd(o); b.count++; }
+  }
+  const totalVolAll = base.reduce((s,o)=>s+volUsd(o), 0);
+  const unattrib = {count: internal.length, vol: internal.reduce((s,o)=>s+volUsd(o), 0)};
+
+  /* every turnover figure below is derived from one row list, so the two tabs
+     can share the maths and only differ in what they are fed */
+  const statsOf = (rows, mons, total) => {
+    const sum = (a,k) => a.reduce((s,b)=>s+b[k],0);
+    const last3 = mons.slice(-3), prev3 = mons.slice(-6,-3);
+    const vol3 = sum(last3,'total'), volPrev3 = sum(prev3,'total');
+    const trendPct = (prev3.length === 3 && volPrev3 > 0) ? (vol3/volPrev3 - 1)*100 : null;
+    const blend = (a3, aAll) => 0.6*a3 + 0.4*aAll;
+    const fcMonthlyVol = blend(vol3/3, total/spanMonths);
+    const dates = rows.map(o=>o.date);
+    const gaps = [];
+    for (let i=1;i<dates.length;i++) gaps.push((d(dates[i]) - d(dates[i-1]))/DAY);
+    const medGap = gaps.length ? median(gaps) : 30;
+    const lastPay = dates.length ? dates[dates.length-1] : firstDate;
+    const daysSince = Math.round((asOf - d(lastPay))/DAY);
+    const years = {};
+    for (const o of rows){
+      const y = o.date.slice(0,4);
+      const yr = years[y] = years[y] || {vol:0, count:0};
+      yr.vol += volUsd(o); yr.count++;
+    }
+    const yearRows = Object.entries(years).sort((a,b)=>a[0].localeCompare(b[0]));
+    for (let i=1;i<yearRows.length;i++){
+      const p = yearRows[i-1][1], c = yearRows[i][1];
+      c.volPct = p.vol > 0 ? (c.vol/p.vol - 1)*100 : null;
+      c.cntPct = p.count > 0 ? (c.count/p.count - 1)*100 : null;
+    }
+    return {
+      vol3, volPrev3, trendPct, fcMonthlyVol, annualVol: fcMonthlyVol*12,
+      fcQOrders: Math.round(blend(sum(last3,'count')/3, rows.length/spanMonths)*3),
+      medGap, lastPay, daysSince, yearRows,
+      overdue: daysSince > Math.max(gaps.length ? pctl(gaps,.75) : 45, medGap*1.5)
+    };
+  };
+  const T = statsOf(base, monthsAll, totalVolAll);          /* turnover tab */
+  const P = statsOf(payments, months, totalVol);            /* counterparty tab */
+  const {vol3, volPrev3, trendPct, fcMonthlyVol, annualVol, fcQOrders,
+         medGap, lastPay, daysSince, overdue, yearRows} = T;
+
+  const feesTotalUsd = base.reduce((s,o)=>s+feeUsdNet(o),0);
+  const voucherPaidUsd = vouchers.reduce((s,o)=>s+o.fee,0)/VAT/rUsd;
+
+  /* currency mix — all activity for the turnover tab, attributed only for the parties tab */
+  const curTot = {}, curTotAll = {};
+  payments.forEach(o => { if (o.currency){ const t = curTot[o.currency] = curTot[o.currency]||{sum:0,count:0}; t.sum += o.amount; t.count++; } });
+  base.forEach(o => { if (o.currency){ const t = curTotAll[o.currency] = curTotAll[o.currency]||{sum:0,count:0}; t.sum += o.amount; t.count++; } });
+
+  /* concentration */
+  const hhi = sups.reduce((s,x)=>s + x.share*x.share, 0);
+  const top3 = sups.slice(0,3).reduce((s,x)=>s+x.share,0);
+
+  return {
+    asOf, all, base, payments, internal, canceled, vouchers, months, keys, sups, countries,
+    purposes, profile, thirdParty, spanDays, flow, partyWord, nIn, nOut, yearRows,
+    totalVol, totalVolAll, monthsAll, unattrib, curTotAll, P,
+    feesTotalUsd, voucherPaidUsd, curTot, hhi, top3, effPct, effRecent, curPricing,
+    spanMonths, tenureYears, trendPct, fcMonthlyVol, annualVol, fcQOrders, medGap, lastPay,
+    daysSince, overdue, firstDate, volUsd, feeUsdNet, fxUsd, vol3, volPrev3
+  };
+}
+
+/* ---------- render ---------- */
+function render(){
+  const rUsd = parseFloat(document.getElementById('rateUsd').value) || DEF_USD;
+  const rEur = parseFloat(document.getElementById('rateEur').value) || DEF_EUR;
+  const rows = ST.cust === '__all' ? ST.raw : ST.raw.filter(r => r.customer === ST.cust);
+  const A = ST.an = analyze(rows, ST.meta, rUsd, rEur);
+  const meta = ST.meta;
+
+  document.getElementById('custName').textContent = ST.cust === '__all' ? 'כל הלקוחות בקובץ' : ST.cust;
+  document.title = 'פעילות לקוח כולל ספקים — ' + (ST.cust === '__all' ? 'כל הלקוחות' : ST.cust);
+
+  const wb = document.getElementById('warnBar');
+  if (!meta.hasSupplier){
+    wb.style.display = '';
+    wb.textContent = '⚠ בקובץ אין את עמודות חשבונות הבנק (Source / Destination Bank Account) — ניתוח הספקים אינו זמין. הוסיפו את השדות לתצוגה ב־Dynamics וייצאו מחדש.';
+  } else wb.style.display = 'none';
+
+  /* ---- chips ---- */
+  const chips = [];
+  if (A.profile) chips.push('פרופיל לקוח: <b>' + esc(profileHe(A.profile)) + '</b>');
+  if (A.base.length) chips.push('תקופה: <b>' + fmtD(A.firstDate) + ' – ' + fmtD(A.base[A.base.length-1].date) + '</b>');
+  chips.push('ותק: <b>' + A.tenureYears.toFixed(1) + ' שנים</b>');
+  chips.push('נכון ל־<b>' + fmtD(meta.asOf) + '</b>');
+  chips.push('<b>' + A.all.length + '</b> תנועות');
+  chips.push(A.flow === 'in' ? '<b>' + A.nIn + '</b> קבלות כספים ממשלמים'
+           : A.flow === 'out' ? '<b>' + A.nOut + '</b> תשלומים לספקים'
+           : '<b>' + A.nIn + '</b> נכנסות · <b>' + A.nOut + '</b> יוצאות');
+  if (A.unattrib.count) chips.push('<b>' + A.unattrib.count + '</b> המרות/הפקדות ללא צד נגדי (' + usdK(A.unattrib.vol) + ')');
+  if (A.canceled.length) chips.push('⛔ <b>' + A.canceled.length + '</b> מבוטלות — לא נכללות בסכומים');
+  if (A.effRecent != null) chips.push('תמחור אפקטיבי: <b>' + A.effRecent.toFixed(2) + '%</b> (~' + A.curPricing + '%)');
+  document.getElementById('headChips').innerHTML = chips.map(h => '<span class="chip">' + h + '</span>').join('');
+
+  /* ---- labels adapt to the direction of the client's flow ---- */
+  const W = A.partyWord;                                   /* ספקים / משלמים / ספקים ומשלמים */
+  const moveWord = A.flow === 'in' ? 'קבלות' : 'תשלומים';
+  document.getElementById('tabParties').innerHTML = W + '<span class="n">' + A.sups.length + '</span>';
+  document.getElementById('supTitle').textContent = 'טבלת ' + W;
+  document.getElementById('stackTitle').textContent = 'נפח לפי חודש ולפי ' + (A.flow === 'in' ? 'משלם' : 'ספק');
+  document.getElementById('alertTitle').textContent = 'מוקדי תשומת לב — ' + W;
+  document.getElementById('ctryTitle').textContent = A.flow === 'in' ? 'פילוח לפי מדינת מקור' : 'פילוח לפי מדינת יעד';
+  document.getElementById('ctryDesc').textContent = A.flow === 'in'
+    ? 'מהיכן מגיע הכסף של הלקוח · נפח מצטבר בדולר'
+    : 'לאן זורם הכסף של הלקוח · נפח מצטבר בדולר';
+
+  const activeSups = A.sups.filter(s=>s.status==='active').length;
+  const dormant = A.sups.filter(s=>s.status==='dormant');
+  const slowing = A.sups.filter(s=>s.status==='slow');
+  const fresh = A.sups.filter(s=>s.isNew);
+  const top1 = A.sups[0];
+  const curRows = Object.entries(A.curTot).sort((a,b)=>b[1].sum*A.fxUsd(b[0]) - a[1].sum*A.fxUsd(a[0]));
+  const curRowsAll = Object.entries(A.curTotAll).sort((a,b)=>b[1].sum*A.fxUsd(b[0]) - a[1].sum*A.fxUsd(a[0]));
+  const curMix = curRows.map(([c,t]) => sym(c) + nfIL.format(Math.round(t.sum)) + ' (' + t.count + ')').join(' · ');
+
+  /* ---- tab 1 KPIs — the client's turnover (ALL activity, attributed or not) ---- */
+  const kpis = [
+    {lbl:'מחזור כולל', val: usdK(A.totalVolAll), sub: A.base.length + ' תנועות · ' +
+      (A.flow === 'in' ? 'כספים שהתקבלו' : A.flow === 'out' ? 'כספים ששולמו' : A.nIn + ' נכנסות · ' + A.nOut + ' יוצאות') +
+      (A.unattrib.count ? ' · כולל ' + usdK(A.unattrib.vol) + ' המרות/הפקדות' : '')},
+    {lbl:'מחזור שנתי צפוי', val: usdK(A.annualVol), sub:'שקלול 60% × 3 חודשים אחרונים + 40% × ממוצע כללי, ×12'},
+    {lbl:'מחזור חודשי ממוצע', val: usdK(A.totalVolAll / A.spanMonths),
+     sub: (A.base.length/A.spanMonths).toFixed(1) + ' תנועות בחודש'},
+    {lbl:'תנועה ממוצעת', val: usdK(A.base.length ? A.totalVolAll/A.base.length : 0),
+     sub: A.base.length ? 'טווח אופייני ' + usdK(pctl(A.base.map(A.volUsd),.25)) + '–' + usdK(pctl(A.base.map(A.volUsd),.75)) : ''},
+    {lbl:'מגמת רבעון אחרון', val: A.trendPct == null ? '—' : (A.trendPct>=0?'+':'') + Math.round(A.trendPct) + '%',
+     sub: A.trendPct == null ? 'אין מספיק היסטוריה להשוואה' : usdK(A.vol3) + ' מול ' + usdK(A.volPrev3) + ' ברבעון הקודם',
+     cls: A.trendPct != null && A.trendPct <= -20 ? 'alert' : ''},
+    meta.hasFee
+      ? {lbl:'הכנסות עמלה (נטו)', val: usdK(A.feesTotalUsd + A.voucherPaidUsd),
+         sub: A.voucherPaidUsd > 0 ? 'מזה שוברים ' + usdK(A.voucherPaidUsd) + ' · לפני מע״מ' : ils(A.feesTotalUsd*rUsd) + ' · לפני מע״מ'}
+      : {lbl:'תנועה אחרונה', val: fmtD(A.lastPay), sub:'לפני ' + A.daysSince + ' ימים · ' + cadenceTxt(A.medGap),
+         cls: A.overdue ? 'alert' : ''}
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(k =>
+    '<div class="kpi ' + (k.cls||'') + '"><div class="lbl">' + k.lbl + '</div><div class="val">' + k.val +
+    '</div><div class="sub">' + (k.sub||'') + '</div></div>').join('');
+
+  /* ---- tab 2 KPIs — the counterparties ---- */
+  const pk = [
+    {lbl: W, val: String(A.sups.length), sub: activeSups + ' פעילים · ' + slowing.length + ' מאטים · ' + dormant.length + ' נרדמו'},
+    {lbl:'מדינות', val: String(A.countries.length), sub: A.countries.slice(0,3).map(c=>esc(c.name)).join(' · ') || '—'},
+    {lbl:'ריכוזיות הגורם המוביל', val: top1 ? Math.round(top1.share*100) + '%' : '—',
+     sub: top1 ? esc(top1.name) + ' · TOP3 = ' + Math.round(A.top3*100) + '%' : '',
+     cls: top1 && top1.share >= 0.7 ? 'alert' : ''},
+    {lbl:'נפח ' + moveWord, val: usdK(A.totalVol), sub: curMix || '—'},
+    {lbl:'חדשים (6 ח׳)', val: String(fresh.length),
+     sub: fresh.length ? fresh.slice(0,2).map(s=>esc(s.name)).join(' · ')
+        : (A.spanDays < 200 ? 'הקובץ מכסה ' + Math.round(A.spanDays/30.44) + ' חודשים בלבד — הזיהוי מוגבל' : 'לא נוספו חדשים'),
+     cls: fresh.length ? 'opp' : ''},
+    {lbl:'נרדמו', val: String(dormant.length),
+     sub: dormant.length ? 'נפח היסטורי ' + usdK(dormant.reduce((s,x)=>s+x.vol,0)) + ' — בדקו מול הלקוח' : 'אין נטישה',
+     cls: dormant.length ? 'alert' : ''}
+  ];
+  document.getElementById('pKpis').innerHTML = pk.map(k =>
+    '<div class="kpi ' + (k.cls||'') + '"><div class="lbl">' + k.lbl + '</div><div class="val">' + k.val +
+    '</div><div class="sub">' + (k.sub||'') + '</div></div>').join('');
+
+  /* ---- monthly turnover chart (tab 1) ---- */
+  document.getElementById('volTitle').textContent = 'מחזור חודשי';
+  document.getElementById('volDesc').textContent =
+    (A.flow === 'in' ? 'סכום הכספים שהתקבלו בכל חודש' : 'סכום התנועות בכל חודש') + ' · ריחוף על עמודה מציג פירוט · ערכים בדולר';
+  barChart('volChart', A.monthsAll, {aria:'מחזור חודשי'});
+
+  /* ---- year over year + currency mix (tab 1) ---- */
+  const yoyBody = document.getElementById('yoyBody');
+  const fmtPct = p => p == null ? '<span style="color:var(--muted)">—</span>'
+    : '<span style="color:' + (p >= 0 ? 'var(--good-ink)' : 'var(--bad)') + ';font-weight:700">' + (p>=0?'+':'') + Math.round(p) + '%</span>';
+  yoyBody.innerHTML = A.yearRows.length
+    ? A.yearRows.map(([y,r]) => '<tr><td><b>' + y + '</b></td><td class="num">' + usdK(r.vol) + '</td>' +
+        '<td class="num">' + fmtPct(r.volPct) + '</td><td class="num">' + r.count + '</td>' +
+        '<td class="num">' + fmtPct(r.cntPct) + '</td></tr>').join('')
+    : '<tr><td colspan="5" style="color:var(--muted)">אין מספיק נתונים</td></tr>';
+  document.getElementById('curBox').innerHTML = curRowsAll.length
+    ? '<h2 style="margin-top:16px">תמהיל מטבעות</h2>' +
+      '<div class="cur-box">' + curRowsAll.map(([c,t]) =>
+        '<div class="cur-row"><b>' + c + '</b><span>' + nfIL.format(Math.round(t.sum)) + ' · ' + t.count + ' תנועות · ' +
+        usdK(t.sum * A.fxUsd(c)) + '</span></div>').join('') + '</div>'
+    : '';
+
+  /* ---- alerts: one summary line per group, the list folded away ---- */
+  const groups = [];
+  if (dormant.length) groups.push({cls:'bad', icon:'🔕', open: dormant.length <= 3,
+    title:'נרדמו — אין תנועה זה זמן רב', n:dormant.length,
+    rows: dormant.map(s => '<b>' + esc(s.name) + '</b> ' + ccTag(s.country) + ' — ' + s.count + ' ' + moveWord +
+      ' בסך ' + usdK(s.vol) + ', האחרונה לפני ' + s.since + ' ימים' +
+      (s.med != null ? ' (מחזור רגיל ' + Math.round(s.med) + ' ימים)' : '') +
+      '. ייתכן שהפעילות מול הגורם הזה עברה לספק שירות אחר.')});
+  if (slowing.length) groups.push({cls:'due', icon:'⏳', open: slowing.length <= 3,
+    title:'האטה בקצב', n:slowing.length,
+    rows: slowing.map(s => '<b>' + esc(s.name) + '</b> ' + ccTag(s.country) + ' — ' + s.since +
+      ' ימים מהתנועה האחרונה מול מחזור של ' + (s.med != null ? Math.round(s.med) : '—') + ' ימים.')});
+  if (fresh.length) groups.push({cls:'ok', icon:'✨', open: fresh.length <= 3,
+    title:'חדשים בששת החודשים האחרונים', n:fresh.length,
+    rows: fresh.map(s => '<b>' + esc(s.name) + '</b> ' + ccTag(s.country) + ' — ' + s.count + ' ' + moveWord +
+      ', ' + usdK(s.vol) + ' מאז ' + fmtD(s.first) + '.')});
+  if (top1 && top1.share >= 0.7 && A.sups.length > 1) groups.push({cls:'due', icon:'🎯', open:true,
+    title:'ריכוזיות גבוהה — ' + Math.round(top1.share*100) + '% מהנפח לגורם אחד', n:1,
+    rows:['<b>' + esc(top1.name) + '</b> מרכז ' + Math.round(top1.share*100) + '% מהנפח — סיכון תלות, וגם הזדמנות: ' +
+      'כל שינוי אצל הגורם הזה משנה את כל הפעילות שלנו מול הלקוח.']});
+  const alertCard = document.getElementById('alertCard');
+  if (groups.length){
+    alertCard.style.display = '';
+    document.getElementById('alerts').innerHTML = groups.map(g =>
+      '<details class="fold ' + g.cls + '"' + (g.open ? ' open' : '') + '>' +
+        '<summary>' + g.icon + ' <span>' + g.title + '</span><span class="cnt">' + g.n + '</span></summary>' +
+        '<div class="fold-body">' + g.rows.map(r => '<div class="row">' + r + '</div>').join('') + '</div>' +
+      '</details>').join('');
+  } else alertCard.style.display = 'none';
+
+  /* ---- stacked chart ---- */
+  const stackCard = document.getElementById('stackCard');
+  if (A.sups.length && A.months.length){
+    stackCard.style.display = '';
+    stackChart('stackChart', A.months, A.keys);
+    document.getElementById('stackLegend').innerHTML = A.keys.map(k =>
+      '<span><i class="sw" style="background:'+k.color+'"></i>' + esc(k.label) + '</span>').join('');
+  } else stackCard.style.display = 'none';
+
+  /* ---- countries ---- */
+  const ctryCard = document.getElementById('ctryCard');
+  if (A.countries.length){
+    ctryCard.style.display = '';
+    const mx = A.countries[0].vol || 1;
+    const cRow = c => '<div class="ctry-row"><div>' + ccTag(c.name) + ' <b>' + esc(c.name) + '</b></div>' +
+      '<div class="ctry-bar"><div style="width:' + Math.max(1, c.vol/mx*100) + '%"></div></div>' +
+      '<div class="ctry-val">' + usdK(c.vol) + ' · ' + Math.round(A.totalVol ? c.vol/A.totalVol*100 : 0) + '% · ' +
+      c.sups + '</div></div>';
+    const HEAD = 5;                                  /* keep the page short: top 5, rest folded */
+    const rest = A.countries.slice(HEAD);
+    document.getElementById('ctryList').innerHTML =
+      A.countries.slice(0, HEAD).map(cRow).join('') +
+      (rest.length
+        ? '<details class="fold" style="margin-top:8px"><summary><span>מדינות נוספות</span>' +
+          '<span class="cnt">' + rest.length + '</span></summary>' +
+          '<div class="fold-body">' + rest.map(cRow).join('') + '</div></details>'
+        : '');
+  } else ctryCard.style.display = 'none';
+
+  /* ---- payment purpose ---- */
+  const realPurp = A.purposes.filter(p => p.name !== 'לא מסווג');
+  document.getElementById('purpBox').innerHTML = realPurp.length
+    ? '<h2 style="margin-top:18px">מטרת התשלומים</h2>' +
+      '<p class="desc">לפי סיווג ה־Transfer Subtype של חשבון היעד</p>' +
+      A.purposes.map(p =>
+        '<div class="ctry-row"><div><b>' + esc(purposeHe(p.name)) + '</b></div>' +
+        '<div class="ctry-bar"><div style="width:' + Math.max(1, p.vol/(A.purposes[0].vol||1)*100) + '%"></div></div>' +
+        '<div class="ctry-val">' + usdK(p.vol) + ' · ' + Math.round(A.totalVol ? p.vol/A.totalVol*100 : 0) + '% · ' +
+        p.count + ' תשלומים</div></div>').join('')
+    : '';
+
+  /* ---- forecast ---- */
+  const qStart = new Date(A.asOf); qStart.setDate(1); qStart.setMonth(qStart.getMonth()+1);
+  const qEnd = new Date(qStart); qEnd.setMonth(qEnd.getMonth()+3); qEnd.setDate(0);
+  document.getElementById('fcPeriod').textContent =
+    'הערכה ל־' + MON[qStart.getMonth()] + '–' + MON[qEnd.getMonth()] + ' ' + qEnd.getFullYear() + ', על בסיס קצב התשלומים בפועל';
+  document.getElementById('fcVol').innerHTML = usd$(A.fcMonthlyVol*3) + ' <small>מחזור צפוי</small>';
+  const nextDue = new Date(d(A.lastPay).getTime() + Math.max(1, A.medGap)*DAY);
+  const late = nextDue < A.asOf;
+  document.getElementById('fcGrid').innerHTML = [
+    ['תנועות צפויות', '~' + A.fcQOrders],
+    /* fees are projected on the transfers we can attribute — a conversion into the
+       client's own account is turnover but not a billable transfer */
+    ['עמלות צפויות', usd$(A.P.fcMonthlyVol*3*A.curPricing/100) + ' <small>לפני מע״מ</small>'],
+    ['מחזור שנתי צפוי', usd$(A.annualVol)],
+    [late ? 'תנועה הבאה — באיחור מאז' : 'תנועה הבאה צפויה עד', fmtD(isoOf(nextDue))]
+  ].map(([l,v]) => '<div class="f-item"><div class="lbl">'+l+'</div><div class="val">'+v+'</div></div>').join('');
+  document.getElementById('cadence').innerHTML = A.overdue
+    ? '<div class="status-pill due">⚠ עברו ' + A.daysSince + ' ימים מהתנועה האחרונה — מעבר לקצב הרגיל (' + cadenceTxt(A.medGap) + '). מומלץ ליצור קשר.</div>'
+    : '<div class="status-pill ok">✓ הלקוח בתוך מחזור הפעילות הרגיל שלו</div>';
+
+  /* ---- supplier table ---- */
+  renderSupHead();
+  renderSups();
+
+  /* ---- insights ---- */
+  const ins = [];
+  if (A.profile) ins.push('הלקוח מסווג ב־Dynamics כ־<b>' + esc(profileHe(A.profile)) + '</b>' +
+    (/import/i.test(A.profile) ? ' — כל התשלומים היוצאים הם למעשה רכש מספקים בחו״ל.'
+     : A.flow === 'in' ? ' — הכסף נכנס אליו מלקוחות בחו״ל, ולכן הצד הנגדי הוא <b>המשלם</b> ולא ספק.' : '.'));
+  if (A.sups.length){
+    ins.push(A.flow === 'in'
+      ? 'הלקוח מקבל כספים מ־<b>' + A.sups.length + '</b> משלמים ב־<b>' + A.countries.length + '</b> מדינות; מחזור מצטבר <b>' + usdK(A.totalVol) + '</b>.'
+      : 'הלקוח משלם ל־<b>' + A.sups.length + '</b> ספקים ב־<b>' + A.countries.length + '</b> מדינות; נפח מצטבר <b>' + usdK(A.totalVol) + '</b>.');
+    const p0 = A.purposes.filter(p=>p.name!=='לא מסווג')[0];
+    if (p0) ins.push('עיקר הכסף מוגדר כ־<b>' + esc(purposeHe(p0.name)) + '</b> — ' +
+      Math.round(A.totalVol ? p0.vol/A.totalVol*100 : 0) + '% מהנפח' +
+      (A.purposes.length > 1 ? ', לצד ' + A.purposes.slice(1).map(p=>esc(purposeHe(p.name))).join(' ו־') + '.' : '.'));
+    const withDesc = A.sups.filter(s=>s.desc);
+    if (withDesc.length) ins.push('תחומי הספקים: <b>' + withDesc.slice(0,6).map(s=>esc(s.desc)).join(' · ') + '</b>' +
+      (withDesc.length < A.sups.length ? ' (ל־' + (A.sups.length - withDesc.length) + ' ספקים אין תיאור עסקי ב־Dynamics — כדאי להשלים).' : '.'));
+    const noSite = A.sups.filter(s => !safeUrl(s.website));
+    if (noSite.length && A.flow !== 'in') ins.push('<b>' + noSite.length + '</b> מתוך ' + A.sups.length + ' ' + W + ' ללא אתר רשום ב־Dynamics — לחצן 🔍 בטבלה מחפש אותם בגוגל.');
+    /* only interesting when the file actually distinguishes owners */
+    if (A.thirdParty > 0 && A.thirdParty < A.payments.length)
+      ins.push('<b>' + A.thirdParty + '</b> מתוך ' + A.payments.length + ' התשלומים הועברו לחשבון בבעלות <b>צד שלישי</b> ולא לספק עצמו — נקודה לתשומת לב ציות.');
+    if (top1) ins.push((A.flow === 'in' ? 'המשלם המוביל' : 'הספק המוביל') + ' <b>' + esc(top1.name) + '</b> (' + esc(top1.country||'—') +
+      ') מרכז <b>' + Math.round(top1.share*100) + '%</b> מהנפח — ' + top1.count + ' ' + moveWord +
+      ', ממוצע ' + usdK(top1.avg) + ', מחזור ' + (top1.med!=null?Math.round(top1.med)+' ימים':'—') + '.');
+    const c0 = A.countries[0];
+    if (c0) ins.push('המסדרון העיקרי: <b>' + (A.flow === 'in' ? esc(c0.name) + ' → ישראל' : 'ישראל → ' + esc(c0.name)) +
+      '</b> — ' + Math.round(A.totalVol?c0.vol/A.totalVol*100:0) + '% מהנפח.');
+    if (A.flow !== 'out') ins.push('בתנועות נכנסות שדות התיאור העסקי והאתר ב־Dynamics מתארים את <b>חשבון היעד</b> — כלומר את הלקוח עצמו — ולכן הם ריקים עבור המשלמים; כפתור 🔍 מחפש כל משלם בגוגל.');
+    ins.push('רמת פיזור (HHI) <b>' + A.hhi.toFixed(2) + '</b> — ' +
+      (A.hhi >= 0.5 ? 'תלות גבוהה בספק בודד.' : A.hhi >= 0.25 ? 'ריכוזיות בינונית.' : 'פיזור בריא בין ספקים.'));
+  }
+  if (A.unattrib.count) ins.push('<b>' + A.unattrib.count + '</b> תנועות (' + usdK(A.unattrib.vol) + ') הן המרות, הפקדות או העברות לחשבון עצמי — ' +
+    'אין להן חשבון יעד ולכן אין צד נגדי לשייך אליו. הן <b>נכללות במחזור</b> בלשונית הראשונה אך לא בניתוח כאן.');
+  const srcTop = topShare(A.base.map(o=>o.source));
+  if (srcTop.name !== '—') ins.push('<b>' + Math.round(srcTop.share*100) + '%</b> מהתנועות בוצעו דרך <b>' + esc(srcTop.name) + '</b>' +
+    (srcTop.name === 'Web Portal' ? ' — לקוח דיגיטלי שמבצע עצמאית.' : '.'));
+  if (A.canceled.length) ins.push('<b>' + A.canceled.length + '</b> תנועות בוטלו/נכשלו (' +
+    Math.round(A.canceled.length/(A.base.length+A.canceled.length)*100) + '%) — ' +
+    (A.canceled.length/(A.base.length+A.canceled.length) > 0.15 ? 'שיעור גבוה, כדאי לברר חיכוך תפעולי.' : 'שיעור סביר.'));
+  if (A.effPct != null) ins.push('תמחור אפקטיבי מחושב מהעמלות בפועל: חציון <b>' + A.effPct.toFixed(2) + '%</b>, לאחרונה <b>' +
+    A.effRecent.toFixed(2) + '%</b> — כלומר מסלול <b>' + (A.curPricing <= 0.30 ? 'LARGE BUSINESS' : A.curPricing <= 0.43 ? 'RETAIL (ישן)' : 'BUSINESS') + '</b>.');
+  if (A.trendPct != null && Math.abs(A.trendPct) >= 10) ins.push('מגמת נפח <b>' + (A.trendPct>0?'עולה':'יורדת') + '</b>: ' +
+    (A.trendPct>0?'+':'') + Math.round(A.trendPct) + '% ברבעון האחרון מול הקודם (' + usdK(A.vol3) + ' מול ' + usdK(A.volPrev3) + ').');
+  /* keep the card short: first few inline, the rest folded */
+  const INS_HEAD = 4;
+  document.getElementById('insights').innerHTML =
+    ins.slice(0, INS_HEAD).map(t=>'<li>'+t+'</li>').join('') +
+    (ins.length > INS_HEAD
+      ? '<li style="list-style:none;margin-inline-start:-18px"><details class="fold" style="margin-top:6px">' +
+        '<summary><span>תובנות נוספות</span><span class="cnt">' + (ins.length - INS_HEAD) + '</span></summary>' +
+        '<div class="fold-body">' + ins.slice(INS_HEAD).map(t=>'<div class="row">'+t+'</div>').join('') + '</div>' +
+        '</details></li>'
+      : '');
+
+  /* ---- voucher recommendation ---- */
+  /* size the voucher on the volume that actually carries fees (attributed
+     transfers), not on conversions/deposits into the client's own account —
+     otherwise a client who converts before paying gets a double-counted,
+     over-sized recommendation */
+  const recVol = A.P.annualVol;
+  const recLarge = recVol >= LARGE_THRESHOLD_USD;
+  /* never recommend worse pricing than the customer already gets */
+  const recPricing = (recLarge || A.curPricing <= 0.30) ? 0.30 : 0.45;
+  const upgrade = recPricing < A.curPricing - 1e-9;
+  const minNetUsd = MIN_FEE_NET_ILS / rUsd;
+  const annualTrades = (A.payments.length / A.spanMonths) * 12;
+  const annualFees = Math.max(recVol * recPricing/100, annualTrades * minNetUsd);
+  const cands = TRACKS.filter(t => t.pricing === recPricing && (t.label !== 'לקוח חדש' || A.tenureYears < 1)).sort((a,b)=>a.pay-b.pay);
+  let track = null, payNeeded = null;
+  for (const t of cands){
+    const p = annualFees / (1 + t.bonus/100);
+    if (p >= t.pay - 0.5 && (!track || t.bonus > track.bonus)){ track = t; payNeeded = p; }
+  }
+  let shelf = false;
+  if (!track){ track = cands[0]; payNeeded = track.pay; shelf = true; }
+  payNeeded = Math.ceil(payNeeded/100)*100;
+  const stretched = !shelf && payNeeded > track.pay*1.01;
+  const totalRedeem = payNeeded * (1 + track.bonus/100);
+  document.getElementById('recDesc').textContent =
+    'לפי העברות שנתיות צפויות של ' + usd$(recVol) +
+    (A.unattrib.count ? ' (ללא ' + usdK(A.unattrib.vol) + ' המרות/הפקדות שאינן העברה לצד נגדי)' : '') +
+    ' ותמחור ' + recPricing + '% → עמלות שנתיות צפויות ~' + usd$(annualFees) + ' (לפני מע״מ)';
+  let recText = '';
+  /* without a fee column the current track is unknown — don't claim an upgrade */
+  if (upgrade && meta.hasFee) recText += 'ממליץ להעביר את הלקוח למסלול תמחור <b>LARGE BUSINESS</b> (0.30%) ו';
+  if (shelf) recText += 'למכור לו שובר <b>' + usd$(track.pay) + '</b> (+מע״מ) — מסלול ' + track.label;
+  else if (stretched) recText += 'למכור לו שובר <b>' + usd$(track.pay) + '</b> ולמתוח את השובר ל־<b>' + usd$(payNeeded) + '</b> (+מע״מ) כדי לכסות את כל המחזור הצפוי';
+  else recText += 'למכור לו שובר <b>' + usd$(payNeeded) + '</b> (+מע״מ) — מסלול ' + track.label;
+  document.getElementById('recBody').innerHTML =
+    '<div class="rec-line">💡 ' + recText + '</div><div class="f-grid">' +
+    [['לתשלום (לפני מע״מ)', '<b>' + usd$(payNeeded) + '</b>'],
+     ['כולל מע״מ 18%', usd$(payNeeded*VAT) + ' <small>(' + ils(payNeeded*VAT*rUsd) + ')</small>'],
+     ['תוספת (הטבה ' + track.bonus + '%)', usd$(totalRedeem - payNeeded)],
+     ['יתרה למימוש עמלות', '<b>' + usd$(totalRedeem) + '</b>'],
+     ['מכסה מחזור שנתי של', '~' + usd$(totalRedeem/(recPricing/100))],
+     ['עלות אפקטיבית', (recPricing/(1+track.bonus/100)).toFixed(2) + '%']
+    ].map(([l,v]) => '<div class="f-item"><div class="lbl">'+l+'</div><div class="val">'+v+'</div></div>').join('') +
+    '</div><div class="f-note">ההטבה נוספת לסכום שלפני המע״מ והעמלות יורדות ממנו. מעל מסלול ה־$15,000 ניתן להוסיף כל סכום באותו מפתח (50%).' +
+    (A.vouchers.length ? ' הלקוח רכש בעבר ' + A.vouchers.length + ' שוברים.' : '') +
+    (meta.hasFee ? '' : ' <b>בקובץ זה אין עמודת עמלה (Total Amount)</b>, ולכן המחירון הנוכחי של הלקוח אינו ידוע — ההמלצה נגזרת מהמחזור הצפוי בלבד (' + recPricing + '%). לבדיקת מסלול קיים ייצאו תצוגה הכוללת את השדה.') +
+    '</div>';
+
+  /* ---- shared suppliers across clients (all-clients mode) ---- */
+  const crossCard = document.getElementById('crossCard');
+  const shared = A.sups.filter(s => s.nClients > 1);
+  if (ST.cust === '__all' && shared.length){
+    crossCard.style.display = '';
+    document.getElementById('crossBody').innerHTML = shared.slice(0,40).map(s =>
+      '<tr><td><span class="sup-name">' + esc(s.name) + '</span></td>' +
+      '<td>' + ccTag(s.country) + ' ' + esc(s.country||'—') + '</td>' +
+      '<td>' + Object.keys(s.clients).map(esc).join(' · ') + '</td>' +
+      '<td class="num">' + usdK(s.vol) + '</td><td class="num">' + s.count + '</td></tr>').join('');
+  } else crossCard.style.display = 'none';
+
+  /* ---- transactions ---- */
+  renderTx();
+
+  document.getElementById('foot').textContent =
+    'הופק אוטומטית מתוך "' + meta.sourceFile + '" · נכון ל־' + fmtD(meta.asOf) +
+    ' · המרות לפי ₪/$ ' + rUsd.toFixed(2) + ' ו־₪/€ ' + rEur.toFixed(2) + ' ושערי צלב מוערכים למטבעות אחרים' +
+    ' · עמלות בקובץ כוללות מע״מ 18% ומוצגות כאן נטו · פעילות לקוח כולל ספקים · ClearShift · v1.3';
+
+  document.getElementById('dropScreen').style.display = 'none';
+  document.getElementById('dash').style.display = 'flex';
+}
+
+const SUP_COLS = [
+  {k:'name',  t:'שם'},
+  {k:'link',  t:'אתר', noSort:true},
+  {k:'dir',   t:'כיוון'},
+  {k:'country', t:'מדינה'},
+  {k:'subtype', t:'מטרה'},
+  {k:'count', t:'תנועות', num:true},
+  {k:'vol',   t:'נפח ($)', num:true},
+  {k:'share', t:'נתח', num:true},
+  {k:'avg',   t:'ממוצע', num:true},
+  {k:'cur',   t:'מטבע'},
+  {k:'first', t:'ראשון'},
+  {k:'last',  t:'אחרון'},
+  {k:'med',   t:'מחזור (ימים)', num:true},
+  {k:'since', t:'ימים מאז', num:true},
+  {k:'status',t:'סטטוס'}
+];
+/* the 🌐 / 🔍 buttons: real supplier site when Dynamics has one, web search otherwise */
+function linkBtns(s, big){
+  const w = safeUrl(s.website);
+  const cls = big ? 'btn ghost' : 'lnk';
+  const out = [];
+  if (w) out.push('<a class="' + cls + '" href="' + esc(w) + '" target="_blank" rel="noopener noreferrer" ' +
+    'title="' + esc(hostOf(w)) + '" onclick="event.stopPropagation()">🌐' + (big ? ' אתר הספק' : '') + '</a>');
+  out.push('<a class="' + cls + '" href="' + esc(searchUrl(s.name, s.country)) + '" target="_blank" rel="noopener noreferrer" ' +
+    'title="חיפוש הספק בגוגל" onclick="event.stopPropagation()">🔍' + (big ? ' חיפוש בגוגל' : '') + '</a>');
+  return out.join(' ');
+}
+function renderSupHead(){
+  document.getElementById('supHead').innerHTML =
+    (ST.cust === '__all' ? '<th>לקוחות</th>' : '') +
+    SUP_COLS.map(c => c.noSort ? '<th>' + c.t + '</th>'
+      : '<th class="sortable" data-k="' + c.k + '">' + c.t +
+        (ST.sortKey === c.k ? ' <span class="arw">' + (ST.sortDir < 0 ? '▼' : '▲') + '</span>' : '') + '</th>').join('');
+  document.querySelectorAll('#supHead th.sortable').forEach(th => th.addEventListener('click', ()=>{
+    const k = th.dataset.k;
+    if (ST.sortKey === k) ST.sortDir *= -1;
+    else { ST.sortKey = k; ST.sortDir = ['name','country','status','cur'].includes(k) ? 1 : -1; }
+    renderSupHead(); renderSups();
+  }));
+}
+function renderSups(){
+  const A = ST.an;
+  const q = ST.q.trim().toLowerCase();
+  let list = A.sups.filter(s => !q || (s.name + ' ' + s.country).toLowerCase().includes(q));
+  const key = ST.sortKey, dir = ST.sortDir;
+  const val = s => {
+    if (key === 'cur') return Object.keys(s.cur)[0] || '';
+    if (key === 'med') return s.med == null ? -1 : s.med;
+    if (key === 'status') return {active:0, slow:1, dormant:2}[s.status];
+    if (key === 'link') return safeUrl(s.website) ? 0 : 1;
+    return s[key];
+  };
+  list = [...list].sort((a,b)=>{
+    const x = val(a), y = val(b);
+    if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y), 'he') * dir;
+    return (x - y) * dir;
+  });
+  const nCols = SUP_COLS.length + (ST.cust === '__all' ? 1 : 0);
+  const CAP = 25;                                   /* keep the page short; the rest on demand */
+  const full = list;
+  if (!ST.supAll) list = list.slice(0, CAP);
+  document.getElementById('supDesc').textContent =
+    (full.length > list.length ? 'מוצגים ' + list.length + ' מתוך ' + full.length : full.length + ' שורות') +
+    ' · לחיצה על שורה פותחת פירוט · מיון בלחיצה על כותרת · נפחים בדולר (הערכה לפי שערי המרה)';
+  const moreBtn = document.getElementById('moreSup');
+  moreBtn.style.display = (!ST.supAll && full.length > CAP) ? '' : 'none';
+  moreBtn.textContent = 'הצגת כל ' + full.length + ' השורות';
+  document.getElementById('supBody').innerHTML = list.map(s => {
+    const stCls = s.status === 'active' ? '' : (s.status === 'slow' ? ' mid' : ' bad');
+    const curTxt = Object.entries(s.cur).sort((a,b)=>b[1]-a[1]).map(([c,v]) => c).join('/') || '—';
+    const open = ST.expanded.has(s.key);
+    let html = '<tr class="sup-row" data-k="' + esc(s.key) + '">' +
+      (ST.cust === '__all' ? '<td>' + s.nClients + '</td>' : '') +
+      '<td><span class="sup-name">' + esc(s.name) + '</span>' + (s.isNew ? ' <span class="st new">חדש</span>' : '') +
+        (s.desc ? '<div class="sup-desc">' + esc(s.desc) + '</div>' : '') + '</td>' +
+      '<td>' + linkBtns(s, false) + '</td>' +
+      '<td><span class="dir ' + s.dir + '">' + (s.dir === 'in' ? 'נכנס ←' : 'יוצא →') + '</span></td>' +
+      '<td>' + ccTag(s.country) + ' ' + esc(s.country || '—') + '</td>' +
+      '<td>' + esc(purposeHe(s.subtype) || '—') + '</td>' +
+      '<td class="num">' + s.count + '</td>' +
+      '<td class="num">' + usdK(s.vol) + '</td>' +
+      '<td class="num share-cell"><div class="share-bar" style="width:' + Math.round(s.share*100) + '%"></div><span>' + Math.round(s.share*100) + '%</span></td>' +
+      '<td class="num">' + usdK(s.avg) + '</td>' +
+      '<td>' + esc(curTxt) + '</td>' +
+      '<td>' + fmtD(s.first) + '</td>' +
+      '<td>' + fmtD(s.last) + '</td>' +
+      '<td class="num">' + (s.med != null ? Math.round(s.med) : '—') + '</td>' +
+      '<td class="num">' + s.since + '</td>' +
+      '<td><span class="st' + stCls + '">' + s.stLbl + '</span></td></tr>';
+    if (open){
+      const keys = A.months.map(m=>m.key);
+      const series = keys.map(k => ({key:k, v:s.months[k] || 0}));
+      const facts = [
+        ['תשלומים', s.count + ' · ' + usdK(s.vol)],
+        ['ממוצע / חציון', usdK(s.avg) + ' / ' + usdK(median(s.rows.map(A.volUsd)))],
+        ['תשלום ראשון', fmtD(s.first) + ' (לפני ' + Math.round(s.ageDays/30.44) + ' ח׳)'],
+        ['תשלום אחרון', fmtD(s.last) + ' (לפני ' + s.since + ' ימים)'],
+        ['מחזור אופייני', s.med != null ? Math.round(s.med) + ' ימים' : 'תשלום בודד'],
+        ['תשלום הבא צפוי', s.next ? fmtD(s.next) : '—'],
+        ['מטבעות', Object.entries(s.cur).map(([c,v]) => sym(c) + nfIL.format(Math.round(v))).join(' · ') || '—'],
+        ['מדינה', (s.country || '—')],
+        ['מטרת התשלום', Object.entries(s.subs).sort((a,b)=>b[1]-a[1]).map(([k,n]) => purposeHe(k) + ' (' + n + ')').join(' · ') || '—'],
+        ['בעל חשבון היעד', s.owner || '—']
+      ];
+      if (s.fees > 0) facts.splice(6, 0, ['עמלות שנגבו (נטו)', usdK(s.fees)]);
+      html += '<tr class="det-row"><td colspan="' + nCols + '">' +
+        '<div class="sup-head">' +
+          '<div><div class="sup-title">' + esc(s.name) + '</div>' +
+          '<div class="sup-sub">' + ccTag(s.country) + ' ' + esc(s.country || '—') +
+            (s.desc ? ' · ' + esc(s.desc) : '') +
+            (safeUrl(s.website) ? ' · <span dir="ltr">' + esc(hostOf(safeUrl(s.website))) + '</span>' : ' · אין אתר רשום ב־Dynamics') +
+          '</div></div>' +
+          '<div class="sup-btns">' + linkBtns(s, true) + '</div>' +
+        '</div>' +
+        '<div class="det-grid">' + facts.map(([l,v]) =>
+          '<div class="f-item"><div class="lbl">' + l + '</div><div class="val" style="font-size:14px">' + esc(v) + '</div></div>').join('') + '</div>' +
+        sparkline(series, 900, 84) +
+        '<div class="table-scroll" style="margin-top:10px"><table><thead><tr><th>תאריך</th><th>מס׳</th><th>סכום</th><th>שווי $</th>' +
+        (ST.meta.hasFee ? '<th>עמלה (₪)</th><th>ערוץ</th>' : '') + '</tr></thead><tbody>' +
+        [...s.rows].reverse().slice(0,25).map(o =>
+          '<tr><td>' + fmtD(o.date) + '</td><td>' + (o.num ? '#'+o.num : '—') + '</td>' +
+          '<td class="num">' + nf2.format(o.amount) + ' ' + esc(o.currency) + '</td>' +
+          '<td class="num">' + usdK(A.volUsd(o)) + '</td>' +
+          (ST.meta.hasFee ? '<td class="num">' + nf2.format(o.fee) + '</td><td>' + esc(o.source || '—') + '</td>' : '') +
+          '</tr>').join('') +
+        '</tbody></table></div>' +
+        (s.rows.length > 25 ? '<div class="f-note">מוצגים 25 התשלומים האחרונים מתוך ' + s.rows.length + '.</div>' : '') +
+        '</td></tr>';
+    }
+    return html;
+  }).join('');
+  document.querySelectorAll('#supBody .sup-row').forEach(tr => tr.addEventListener('click', ()=>{
+    const k = tr.dataset.k;
+    if (ST.expanded.has(k)) ST.expanded.delete(k); else ST.expanded.add(k);
+    renderSups();
+  }));
+}
+function renderTx(){
+  const A = ST.an;
+  const q = ST.txQ.trim().toLowerCase();
+  let list = [...A.all].reverse();
+  if (q) list = list.filter(o => (o.dstAcct + ' ' + o.srcAcct + ' ' + o.dstCtry + ' ' + o.srcCtry + ' ' + o.num + ' ' +
+    o.customer + ' ' + o.status + ' ' + o.subtype + ' ' + purposeHe(o.subtype) + ' ' + o.bizDesc).toLowerCase().includes(q));
+  const shown = ST.txAll ? list : list.slice(0, 200);
+  document.getElementById('tblDesc').textContent =
+    'מוצגות ' + shown.length + ' מתוך ' + list.length + ' תנועות, מהחדשה לישנה · 🎟️ = רכישת שובר · ' +
+    'שורה עם קו חוצה = מבוטלת, אינה נכללת בסכומים' + (ST.meta.hasFee ? ' · עמלות כוללות מע״מ' : '');
+  document.getElementById('tblBody').innerHTML = shown.map(o => {
+    const stCls = o.status === 'Settled' ? '' : (CANCELED.has(o.status) ? ' bad' : ' mid');
+    const isV = VOUCHER_RE.test(o.raw);
+    const c = o.cls || {dir:'internal', party:'', country:''};
+    const dirTag = c.dir === 'in' ? '<span class="dir in">נכנס ←</span>'
+                 : c.dir === 'out' ? '<span class="dir out">יוצא →</span>'
+                 : '<span class="dir">פנימי ↔</span>';
+    /* what the customer actually received/sent, when it differs from the traded amount */
+    const deliv = (o.delivAmount && o.delivCurrency && o.delivCurrency !== o.currency)
+      ? '<div class="sup-desc" dir="ltr">→ ' + nf2.format(o.delivAmount) + ' ' + esc(o.delivCurrency) + '</div>' : '';
+    return '<tr' + (CANCELED.has(o.status) ? ' class="canceled"' : '') + '><td>' + fmtD(o.date) + '</td>' +
+      '<td>' + (o.num ? '#'+o.num : '—') + (isV ? ' 🎟️' : '') + '</td>' +
+      '<td>' + dirTag + '</td>' +
+      '<td class="num">' + nf2.format(o.amount) + ' ' + esc(o.currency) + deliv + '</td>' +
+      '<td><span class="sup-name">' + esc(c.party || (c.dir === 'internal' ? 'חשבון עצמי' : '—')) + '</span></td>' +
+      '<td>' + ccTag(c.country) + ' ' + esc(c.country || '—') + '</td>' +
+      '<td>' + esc(purposeHe(o.subtype) || '—') + '</td>' +
+      '<td class="num">' + (ST.meta.hasFee ? nf2.format(o.fee) : '—') + '</td>' +
+      '<td><span class="st' + stCls + '">' + esc(o.status || '—') + '</span></td></tr>';
+  }).join('');
+  const btn = document.getElementById('moreTx');
+  btn.style.display = (!ST.txAll && list.length > 200) ? '' : 'none';
+  btn.textContent = 'הצגת כל ' + list.length + ' התנועות';
+}
+
+/* ---------- intake & controls ---------- */
+const dz = document.getElementById('dz');
+const fileInput = document.getElementById('fileInput');
+const dropErr = document.getElementById('dropErr');
+const rateUsd = document.getElementById('rateUsd');
+const rateEur = document.getElementById('rateEur');
+/* Storage must never throw: opened from SharePoint/OneDrive the page runs inside a
+   sandboxed srcdoc iframe with no 'allow-same-origin', where merely READING
+   localStorage raises a SecurityError — which would abort the rest of this script
+   and silently kill every listener registered below. */
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ /* sandboxed: keep in memory */ } }
+};
+rateUsd.value = store.get('cs_rate_usd') || DEF_USD.toFixed(2);
+rateEur.value = store.get('cs_rate_eur') || DEF_EUR.toFixed(2);
+[rateUsd, rateEur].forEach(inp => inp.addEventListener('change', ()=>{
+  store.set('cs_rate_usd', rateUsd.value);
+  store.set('cs_rate_eur', rateEur.value);
+  if (ST.raw) render();
+}));
+document.querySelectorAll('#tabs .tab').forEach(b => b.addEventListener('click', ()=> setView(b.dataset.v)));
+document.getElementById('moreSup').addEventListener('click', ()=>{ ST.supAll = true; renderSups(); });
+document.getElementById('supSearch').addEventListener('input', e => { ST.q = e.target.value; ST.supAll = false; renderSups(); });
+document.getElementById('txSearch').addEventListener('input', e => { ST.txQ = e.target.value; ST.txAll = false; renderTx(); });
+document.getElementById('moreTx').addEventListener('click', ()=>{ ST.txAll = true; renderTx(); });
+document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+document.getElementById('custPick').addEventListener('change', e => {
+  ST.cust = e.target.value; ST.expanded.clear(); render(); window.scrollTo(0,0);
+});
+
+async function handleFile(file){
+  dropErr.textContent = '';
+  if (!file) return;
+  if (!/\.xlsx$/i.test(file.name)){ dropErr.textContent = 'יש לבחור קובץ .xlsx'; return; }
+  try{
+    const buf = await file.arrayBuffer();
+    const {rows, meta} = await parseXlsx(buf, file.name, file.lastModified);
+    ST.raw = rows; ST.meta = meta; ST.expanded.clear(); ST.q = ''; ST.txQ = ''; ST.txAll = false; ST.supAll = false;
+    const cnt = {};
+    rows.forEach(r => { if (r.customer) cnt[r.customer] = (cnt[r.customer]||0)+1; });
+    const names = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+    const pick = document.getElementById('custPick');
+    if (names.length > 1){
+      pick.style.display = '';
+      pick.innerHTML = '<option value="__all">כל הלקוחות (' + names.length + ')</option>' +
+        names.map(n => '<option value="' + esc(n) + '">' + esc(n) + ' (' + cnt[n] + ')</option>').join('');
+      ST.cust = names[0];
+      pick.value = names[0];
+    } else {
+      pick.style.display = 'none';
+      ST.cust = names[0] || 'לקוח';
+    }
+    document.getElementById('supSearch').value = '';
+    document.getElementById('txSearch').value = '';
+    setView('activity');
+    render();
+    window.scrollTo(0,0);
+  }catch(e){
+    document.getElementById('dropScreen').style.display = 'flex';
+    document.getElementById('dash').style.display = 'none';
+    dropErr.textContent = 'שגיאה בקריאת הקובץ: ' + e.message;
+  }
+}
+dz.addEventListener('click', ()=> fileInput.click());
+dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+fileInput.addEventListener('change', ()=> { handleFile(fileInput.files[0]); fileInput.value = ''; });
+document.getElementById('loadAnother').addEventListener('click', ()=> fileInput.click());
+['dragover','dragenter'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); if (ev==='dragleave' && e.relatedTarget) return; dz.classList.remove('over');
+}));
+document.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+</script>
+</body>
+</html>
