@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.45" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.46" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.45 | 07.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.46 | 07.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -7395,26 +7395,54 @@ function fillGapsBox() {
    meant that with a single signer the tag asked for a third recipient that had
    no reason to exist, and the user had to invent a filler just to make the
    field appear. */
+/* The envelope's recipient list: distinct PEOPLE, not roles.
+   This is the correction to the obvious question - why would one owner who is
+   also the נציג need two recipients? He does not. The number used to come from
+   the ROLE (signerCount + 1), so the same human holding both roles was handed
+   two slots: he would have to be entered twice in Zoho and would get two
+   separate signing requests for documents he signs once. Identity decides,
+   matched on ת"ז and falling back to the name, exactly as everywhere else in
+   this tool. Order is fixed - signers, then the declarant if he is somebody new
+   - because a tag points at a position and the position must be predictable. */
+function envRecipients() {
+  const out = [];
+  const idOf = p => normId(p && p.idNumber) || String((p && p.name) || '').trim();
+  const add = (p, who, docs) => {
+    const k = idOf(p);
+    if (!k) return;
+    const found = out.find(x => x.key === k);
+    if (found) {
+      if (found.roles.indexOf(who) < 0) found.roles.push(who);
+      docs.forEach(d => { if (found.docs.indexOf(d) < 0) found.docs.push(d); });
+      return;
+    }
+    out.push({ key: k, name: String((p && p.name) || '').trim(),
+               idNumber: (p && p.idNumber) || '', roles: [who], docs: docs.slice() });
+  };
+  const n = Math.min(2, Math.max(1, S.signerCount || 1));
+  for (let i = 0; i < n; i++) {
+    add(S.signers[i], 'חותם ' + (i + 1),
+        i === 0 ? ['החלטת ארגון', 'CRS'] : ['החלטת ארגון']);
+  }
+  const d = declarantRaw();
+  add(d, d.who, ['הצהרת נהנים']);
+  return out.map((r, i) => Object.assign(r, { n: i + 1 }));
+}
+
+/* Which slot the הצהרת נהנים signature belongs to. */
 function repRecipientNo() {
+  /* sent on its own, so its only recipient is the first one */
   if (S.envMode === 'each') return 1;
-  return Math.min(2, Math.max(1, S.signerCount || 1)) + 1;
+  const d = declarantRaw();
+  const k = normId(d.idNumber) || String(d.name || '').trim();
+  const hit = envRecipients().find(r => r.key === k);
+  return hit ? hit.n : 1;
 }
 
 /* The order the recipients have to be entered in, in 'one' mode - shown in the
    UI so it is copied rather than guessed. */
-function envRecipientOrder() {
-  const out = [];
-  for (let i = 0; i < (S.signerCount || 1); i++) {
-    const s = S.signers[i] || {};
-    out.push({ n: i + 1, who: 'חותם ' + (i + 1), name: (s.name || '').trim() });
-  }
-  const d = declarantRaw();
-  if (d.who === 'נציג') out.push({ n: repRecipientNo(), who: 'נציג', name: (d.name || '').trim() });
-  return out;
-}
+function envRecipientOrder() { return envRecipients(); }
 
-/* who declares, without the recipient number - so envRecipientOrder can ask
-   without recursing through it */
 function declarantRaw() {
   const reps = S.reps.filter(r => (r.name || '').trim());
   if (S.kind === 'amuta' && reps.length)
@@ -7427,8 +7455,9 @@ function declarantRaw() {
 
 function declarant() {
   const d = declarantRaw();
-  /* חותם 1 is recipient 1 under both schemes; only the נציג moves */
-  return Object.assign({}, d, { recipient: d.who === 'נציג' ? repRecipientNo() : 1 });
+  /* No role special-casing any more: repRecipientNo looks the person up in the
+     recipient list, so a declarant who is also חותם 1 lands on his own slot. */
+  return Object.assign({}, d, { recipient: repRecipientNo() });
 }
 
 /* מי ייכתב בראש הצהרת הנהנים, בשמו, לפני ההורדה. הטופס נפתח ב"אני ___ בעל
@@ -7530,15 +7559,19 @@ function envModeBox() {
       'מישהו אחר.'));
     box.append(el('div', { class: 'tscroll', style: 'margin-top:8px' },
       el('table', { class: 'g' },
-        el('tr', {}, ['#', 'תפקיד', 'שם', 'על אילו מסמכים'].map(h => el('th', {}, h))),
+        el('tr', {}, ['#', 'תפקיד', 'שם', 'ת"ז', 'על אילו מסמכים'].map(h => el('th', {}, h))),
         order.map(r => el('tr', {},
           el('td', { class: 'mono' }, String(r.n)),
-          el('td', { class: 'k' }, r.who),
+          /* one row per PERSON, so somebody holding two roles shows both here
+             instead of appearing twice in the list */
+          el('td', { class: 'k' }, r.roles.join(' · ')),
           el('td', { class: 'v' }, r.name || '— חסר —'),
-          el('td', { class: 'roletag' },
-            r.who === 'נציג' ? 'הצהרת נהנים'
-              : (r.n === 1 ? 'החלטת ארגון · CRS' + (declarantRaw().who === 'חותם 1' ? ' · הצהרת נהנים' : '')
-                           : 'החלטת ארגון')))))));
+          el('td', { class: 'mono' }, r.idNumber || '—'),
+          el('td', { class: 'roletag' }, r.docs.join(' · ')))))));
+    box.append(el('div', { class: 'lbl', style: 'margin-top:8px' },
+      order.length === 1
+        ? 'נמען אחד — אותו אדם חותם על שלושת המסמכים.'
+        : order.length + ' נמענים, כי אלה ' + order.length + ' אנשים שונים.'));
   }
   return box;
 }
