@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.44" data-built="2026-09-04" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.45" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.44 | 04.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.45 | 07.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -4862,6 +4862,10 @@ function freshState(kind) {
        the signer. The declaration is a personal statement — "אני, בעל ת\"ז" —
        so whoever signs it also supplies the name and ID at the top of it. */
     declSigner: 'rep',      /* 'rep' | 'signer' */
+    /* 'each' = כל מסמך נשלח למעטפה נפרדת ב-Zoho, ולכן המספור מתחיל מ-1 בכל
+       מסמך. 'one' = שלושתם במעטפה אחת, ולכן המספור גלובלי: חותמים ואז נציג.
+       זה משתנה מלקוח ללקוח, ולכן זו בחירה ולא הנחה. */
+    envMode: loadEnvMode(),
     declRepIndex: 0,
     downloaded: false, files: null, busy: false
   };
@@ -5189,6 +5193,23 @@ function toggleTheme() {
   try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* storage blocked */ }
   render();
 }
+/* The envelope mode is a property of how this office works with a given
+   customer, so it is remembered on the device rather than re-picked every case.
+   Guarded: on SharePoint the tool runs in a sandboxed iframe where a bare
+   localStorage read THROWS instead of returning null, and an unguarded access
+   here would kill every listener below it. */
+const ENVMODE_KEY = 'cs-zoho-envmode';
+function loadEnvMode() {
+  try {
+    const v = localStorage.getItem(ENVMODE_KEY);
+    if (v === 'one' || v === 'each') return v;
+  } catch (e) { /* storage blocked */ }
+  return 'each';
+}
+function saveEnvMode(v) {
+  try { localStorage.setItem(ENVMODE_KEY, v); } catch (e) { /* storage blocked */ }
+}
+
 function restoreTheme() {
   let saved = null;
   try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* storage blocked */ }
@@ -7211,6 +7232,10 @@ function screenSigners() {
   } else {
     box.append(declSignerPanel());
   }
+  /* The envelope mode belongs to every kind, not just the company flow: an
+     עמותה's declaration is signed by its נציג and hits exactly the same
+     recipient-numbering question. */
+  box.append(envModeBox());
 
   /* --- תאריך התאגדות, גם כאן ---
      הוא נשאל במסך הראשון, אבל מתגלה כחסר דווקא כאן, רגע לפני ההורדה. במקום
@@ -7352,20 +7377,58 @@ function fillGapsBox() {
    "אני [שם מלא], בעל מס' זהות ___" — so the choice drives the top of the page,
    not only the signature line. The template has a single signature line, so
    this is one person, not two. */
-function declarant() {
+/* --------- Zoho recipient numbering ---------
+   A text tag binds to a recipient by POSITION in the envelope's recipient list,
+   so the number is only meaningful against a known list - and the list depends
+   on how the documents are sent. This was the bug that made a whole הצהרת נהנים
+   come back blank: the tag said Recipient3, the user had uploaded that one file
+   on its own with a single recipient, and Zoho recognised the tag, swallowed its
+   text and bound it to nobody. No field, no visible tag, no error.
+
+     'each'  every file goes to its own envelope. Numbering restarts at 1 per
+             document, so a single recipient is enough and nothing has to be
+             lined up by hand.
+     'one'   all three in one envelope. Numbering is global over the set:
+             חותם 1, חותם 2, then the נציג after them.
+
+   In 'one' the נציג sits at signerCount + 1, NOT at a fixed 3. Hard-coding 3
+   meant that with a single signer the tag asked for a third recipient that had
+   no reason to exist, and the user had to invent a filler just to make the
+   field appear. */
+function repRecipientNo() {
+  if (S.envMode === 'each') return 1;
+  return Math.min(2, Math.max(1, S.signerCount || 1)) + 1;
+}
+
+/* The order the recipients have to be entered in, in 'one' mode - shown in the
+   UI so it is copied rather than guessed. */
+function envRecipientOrder() {
+  const out = [];
+  for (let i = 0; i < (S.signerCount || 1); i++) {
+    const s = S.signers[i] || {};
+    out.push({ n: i + 1, who: 'חותם ' + (i + 1), name: (s.name || '').trim() });
+  }
+  const d = declarantRaw();
+  if (d.who === 'נציג') out.push({ n: repRecipientNo(), who: 'נציג', name: (d.name || '').trim() });
+  return out;
+}
+
+/* who declares, without the recipient number - so envRecipientOrder can ask
+   without recursing through it */
+function declarantRaw() {
   const reps = S.reps.filter(r => (r.name || '').trim());
-  /* בעמותה הנציג חותם על הצהרת הנהנים תמיד — אין בחירה */
-  if (S.kind === 'amuta' && reps.length) {
-    const r = reps[0];
-    return { name: r.name, idNumber: r.idNumber, recipient: 3, who: 'נציג' };
-  }
-  if (S.declSigner === 'rep' && reps.length) {
-    /* נציג 1 בלבד — ראה declSignerPanel */
-    const r = reps[0];
-    return { name: r.name, idNumber: r.idNumber, recipient: 3, who: 'נציג' };
-  }
+  if (S.kind === 'amuta' && reps.length)
+    return { name: reps[0].name, idNumber: reps[0].idNumber, who: 'נציג' };
+  if (S.declSigner === 'rep' && reps.length)
+    return { name: reps[0].name, idNumber: reps[0].idNumber, who: 'נציג' };
   const s = S.signers[0] || {};
-  return { name: s.name, idNumber: s.idNumber, recipient: 1, who: 'חותם 1' };
+  return { name: s.name, idNumber: s.idNumber, who: 'חותם 1' };
+}
+
+function declarant() {
+  const d = declarantRaw();
+  /* חותם 1 is recipient 1 under both schemes; only the נציג moves */
+  return Object.assign({}, d, { recipient: d.who === 'נציג' ? repRecipientNo() : 1 });
 }
 
 /* מי ייכתב בראש הצהרת הנהנים, בשמו, לפני ההורדה. הטופס נפתח ב"אני ___ בעל
@@ -7421,13 +7484,63 @@ function declSignerPanel() {
       'יש ' + reps.length + ' נציגים. בהצהרת הנהנים יופיע ',
       el('b', {}, 'נציג 1 — ' + reps[0].name),
       '. כולם מופיעים בנספח א\' של החלטת הארגון.'));
-
   const d = declarant();
   p.append(el('div', { class: 'note k' },
     el('b', {}, 'על הצהרת הנהנים ייכתב: '),
     (d.name || '(חסר שם)') + (d.idNumber ? ` · ת"ז ${d.idNumber}` : ''),
     ' — ', el('span', { class: 'tag' }, `Recipient${d.recipient}`)));
+
   return p;
+}
+
+/* --------- how the documents will be sent ---------
+   The recipient number inside a Zoho text tag is a POSITION in the envelope's
+   recipient list, so it cannot be decided without knowing how the files are
+   sent - and this office does it differently per customer. It used to be
+   assumed (global numbering, נציג at a fixed 3), and when a הצהרת נהנים was
+   uploaded on its own the tag pointed at a recipient that did not exist: Zoho
+   recognised it, removed its text and created no field. The document came back
+   looking blank with nothing to explain it, which is why this is now an
+   explicit choice with the consequence written next to it. */
+function envModeBox() {
+  const box = el('div', { class: 'panel', style: 'margin-top:14px' });
+  box.append(el('h2', {}, 'איך יישלח ל-Zoho Sign?'));
+  box.append(el('p', { class: 'sub' },
+    'זה קובע את מספרי הנמענים בתגיות. בחירה לא נכונה כאן לא מייצרת שגיאה — ' +
+    'המסמך פשוט מגיע בלי שדה חתימה.'));
+  const opt = (val, title, sub) => el('button', {
+    class: S.envMode === val ? 'btn-primary' : '',
+    style: 'text-align:start;flex-direction:column;align-items:flex-start;gap:2px',
+    onclick: () => { S.envMode = val; saveEnvMode(val); render(); } },
+    el('span', { style: 'font-weight:650' }, title),
+    el('span', { class: 'lbl', style: 'opacity:.85' }, sub));
+  box.append(el('div', { class: 'bar', style: 'border:none;padding-top:12px;margin-top:6px' },
+    opt('each', 'כל מסמך בנפרד', 'מעטפה לכל קובץ · נמען אחד מספיק'),
+    opt('one', 'שלושתם במעטפה אחת', 'שליחה אחת · צריך את הנמענים בסדר שלמטה')));
+
+  if (S.envMode === 'each') {
+    box.append(el('div', { class: 'note k', style: 'margin-top:12px' },
+      el('b', {}, 'המספור מתחיל מ-1 בכל מסמך. '),
+      'העלה כל קובץ בנפרד והוסף את החותם שלו כנמען הראשון — זה כל מה שצריך.'));
+  } else {
+    const order = envRecipientOrder();
+    box.append(el('div', { class: 'note w', style: 'margin-top:12px' },
+      el('b', {}, 'הוסף ב-Zoho את הנמענים בסדר הזה בדיוק. '),
+      'תגית מצביעה על מקום ברשימה, לא על שם — נמען במקום הלא נכון חותם במקום ' +
+      'מישהו אחר.'));
+    box.append(el('div', { class: 'tscroll', style: 'margin-top:8px' },
+      el('table', { class: 'g' },
+        el('tr', {}, ['#', 'תפקיד', 'שם', 'על אילו מסמכים'].map(h => el('th', {}, h))),
+        order.map(r => el('tr', {},
+          el('td', { class: 'mono' }, String(r.n)),
+          el('td', { class: 'k' }, r.who),
+          el('td', { class: 'v' }, r.name || '— חסר —'),
+          el('td', { class: 'roletag' },
+            r.who === 'נציג' ? 'הצהרת נהנים'
+              : (r.n === 1 ? 'החלטת ארגון · CRS' + (declarantRaw().who === 'חותם 1' ? ' · הצהרת נהנים' : '')
+                           : 'החלטת ארגון')))))));
+  }
+  return box;
 }
 
 function signerBlock(i) {
