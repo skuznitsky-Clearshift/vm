@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.46" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.47" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.46 | 07.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.47 | 07.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -2327,6 +2327,17 @@ function joinIds(signers) {
    signed examples write it ("המצודה 31 אזור"), and a comma between a digit and
    a Hebrew word lands on the far side of the number under bidi, which reads
    wrong even though it is technically correct. */
+/* Which envelope slot a signer occupies. The UI builds the whole recipient list
+   - the נציג first, then the signers - and hands each signer its number, so
+   nothing here may assume signer i is recipient i+1. That assumption is exactly
+   what put "Recipient3" on a form with two signature lines, and it fails
+   silently: a wrong number is still a valid tag, it just belongs to somebody
+   else. The fallback keeps a case object built without numbers working. */
+function sigRcp(C, i) {
+  const s = ((C && C.signers) || [])[i] || {};
+  return s.recipient || (i + 1);
+}
+
 function addrLine(a) {
   if (!a) return '';
   if (typeof a === 'string') return a.replace(/\s*,\s*/g, ' ').trim();
@@ -2423,9 +2434,10 @@ async function buildDoc2(tplBytes, fontBytes, C) {
   put(M.companyName, C.company.name);
   put(M.regNumber, C.company.regNumber);
   put(M.incCountry, C.company.incCountry || 'ישראל');
-  /* החלטת ארגון נחתמת בידי החותמים, ולכן כאן הנמען הוא חותם 1 ולא הנציג */
+  /* החלטת ארגון נחתמת בידי החותמים, ולכן כאן הנמען הוא חותם 1 ולא הנציג —
+     ובמקומו האמיתי בסדר הנמענים, שאינו בהכרח 1 מאז שהנציג ראשון */
   put(M.incDate,
-    C.company.incDateByClient ? ZTAG.text(1) : C.company.incDate,
+    C.company.incDateByClient ? ZTAG.text(sigRcp(C, 0)) : C.company.incDate,
     C.company.incDateByClient ? { rtl: 0, minSize: 4.5 } : null);
   put(M.regAddress, addrLine(C.company.address));
   put(M.fillerName, joinNames(C.signers));
@@ -2447,8 +2459,9 @@ async function buildDoc2(tplBytes, fontBytes, C) {
     const slot = slots[i];
     put(slot.name, s.name);
     put(slot.role, s.role);
-    p.drawText(slot.date.p, ZTAG.date(i + 1), slot.date);
-    p.drawText(slot.sign.p, ZTAG.sign(i + 1), slot.sign);
+    const rn = sigRcp(C, i);
+    p.drawText(slot.date.p, ZTAG.date(rn), slot.date);
+    p.drawText(slot.sign.p, ZTAG.sign(rn), slot.sign);
   });
 
   const reps2 = (C.reps || []).filter(r => (r.name || '').trim());
@@ -2516,8 +2529,10 @@ async function buildDoc3(tplBytes, fontBytes, C) {
   const s1 = C.signers[0] || {};
   put(M.printName, s1.nameEn || s1.name);
   put(M.jobTitle, s1.roleEn || '');
-  p.drawText(M.sigTag.p, ZTAG.sign(1), M.sigTag);
-  p.drawText(M.dateTag.p, ZTAG.date(1), M.dateTag);
+  /* ה-CRS נחתם בידי חותם 1, ובמקומו בסדר הנמענים */
+  const rn3 = sigRcp(C, 0);
+  p.drawText(M.sigTag.p, ZTAG.sign(rn3), M.sigTag);
+  p.drawText(M.dateTag.p, ZTAG.date(rn3), M.dateTag);
   return p;
 }
 
@@ -2739,7 +2754,10 @@ async function buildAmutaResolution(tplBytes, fontBytes, data) {
     p.warnings.push('תאריך ההתאגדות לא הוזרק כשדה ל-Zoho: לנמען אחד אפשר שדה טקסט ' +
                     'אחד בלבד, והוא ניתן לת"ז של החותם הראשון. הקלד את התאריך או השאר ריק.');
   }
-  put(NPRES.incDate, dateToClient ? NPTAG.text(1) : a.incDate,
+  /* התאריך מוטל על החותם הראשון — ובמקומו האמיתי בסדר הנמענים, שאינו 1 מאז
+     שהנציג ראשון. */
+  const rn1 = ((data.signers || [])[0] || {}).recipient || 1;
+  put(NPRES.incDate, dateToClient ? NPTAG.text(rn1) : a.incDate,
       dateToClient ? { rtl: 0, minSize: 4.5 } : null);
   put(NPRES.regAddress, a.address);
   put(NPRES.sigOrgName, a.name);
@@ -2759,11 +2777,11 @@ async function buildAmutaResolution(tplBytes, fontBytes, data) {
   signers.slice(0, NPRES.signer.length).forEach((s, i) => {
     const slot = NPRES.signer[i];
     put(slot.name, s.name);
-    put(slot.id, s.idByClient ? NPTAG.text(i + 1) : s.idNumber,
-        s.idByClient ? { rtl: 0, minSize: 4.5 } : null);
-    /* התגיות עצמן, אחת לכל נמען. drawText ולא put: התגית היא תמיד קבועה
-       וקיימת, ולא תלויה בערך שהגיע מהמשתמש. */
+    /* מקומו של החותם ברשימת הנמענים. מאז שהנציג הוא נמען 1, חותם i אינו נמען
+       i+1, ולכן המספר מגיע עם החותם עצמו ולא מחושב כאן. */
     const rn = s.recipient || (i + 1);
+    put(slot.id, s.idByClient ? NPTAG.text(rn) : s.idNumber,
+        s.idByClient ? { rtl: 0, minSize: 4.5 } : null);
     /* page 2 is where this person actually signs */
     const B = NPRES.sigBlock[i];
     if (B) {
@@ -2834,16 +2852,42 @@ function amutaCaseFor(a, signers, ceo, chair, rep) {
     ? { name: translit(a.name||''), city: (typeof cityEn==='function'? cityEn(a.city||'') : ''),
         country:'Israel', incCountry:'Israel' }
     : { country:'Israel', incCountry:'Israel' };
+
+  /* The envelope's recipient list, built by the same two rules the UI uses:
+     the declarant first, then the signers, and one person holding two roles
+     takes one slot. Kept here rather than imported because this helper has to
+     work on its own - but it must not disagree with envRecipients(), or a tag
+     will point at a recipient who is not the person on the line. */
+  const keyOf = p => String((p && p.idNumber) || '').replace(/\D/g, '') ||
+                     String((p && p.name) || '').trim();
+  const decl = (rep && (rep.name||'').trim()) ? rep : (signers[0] || null);
+  const rcps = [];
+  const addRcp = p => {
+    const k = keyOf(p);
+    if (!k || rcps.some(x => x.key === k)) return;
+    rcps.push({ key:k, name:(p.name||'').trim(), idNumber:p.idNumber||'', n:rcps.length+1 });
+  };
+  if (decl) addRcp(decl);
+  signers.forEach(addRcp);
+  const rcpOf = p => {
+    const hit = rcps.find(x => x.key === keyOf(p));
+    return hit ? hit.n : 1;
+  };
+  const declRcp = decl ? rcps.find(x => x.key === keyOf(decl)) : null;
+
   return {
     company: { name:a.name||'', regNumber:a.regNumber||'', incDate:a.incDate||'',
                address:a.address||'', country:a.country||'ישראל', en },
     /* המצהיר על הצהרת הנהנים הוא הנציג כשהוגדר אחד — אותו כלל כמו בחברה —
-       ואחרת החותם הראשון. נציג שהוא גם החותם הראשון פשוט מקבל את אותו מקום. */
-    declarant: (rep && (rep.name||"").trim())
-      ? { name:rep.name, idNumber:rep.idNumber||"",
-          recipient:(signers.findIndex(s=>s.name===rep.name)+1)||3 }
-      : (signers[0] ? { name:signers[0].name, idNumber:signers[0].idNumber, recipient:1 } : null),
-    signers: signers.map((s,i)=>({ name:s.name, idNumber:s.idNumber, recipient:i+1 })),
+       ואחרת החותם הראשון.
+
+       מיספור הנמענים כאן חייב להיות זהה ל-envRecipients() שבממשק: הנציג הוא
+       נמען 1 והחותמים אחריו, ואדם אחד בשני תפקידים מקבל מקום אחד. קודם היה
+       כאן ||3 — מספר קבוע שהמציא נמען שלישי שאיש לא יצר, וזו בדיוק התקלה
+       שבגללה מסמך חזר מ-Zoho בלי שדה חתימה. */
+    declarant: declRcp ? { name:declRcp.name, idNumber:declRcp.idNumber, recipient:declRcp.n } : null,
+    signers: signers.map(s => ({ name:s.name, idNumber:s.idNumber,
+                                 recipient:rcpOf(s) })),
     controllers: benef,
     reps: (rep && (rep.name||"").trim()) ? [{ name:rep.name, idNumber:rep.idNumber||"",
            country:rep.country||"ישראל", mobile:rep.mobile||"", email:rep.email||"",
@@ -7395,15 +7439,23 @@ function fillGapsBox() {
    meant that with a single signer the tag asked for a third recipient that had
    no reason to exist, and the user had to invent a filler just to make the
    field appear. */
-/* The envelope's recipient list: distinct PEOPLE, not roles.
-   This is the correction to the obvious question - why would one owner who is
-   also the נציג need two recipients? He does not. The number used to come from
-   the ROLE (signerCount + 1), so the same human holding both roles was handed
-   two slots: he would have to be entered twice in Zoho and would get two
-   separate signing requests for documents he signs once. Identity decides,
-   matched on ת"ז and falling back to the name, exactly as everywhere else in
-   this tool. Order is fixed - signers, then the declarant if he is somebody new
-   - because a tag points at a position and the position must be predictable. */
+/* The envelope's recipient list: distinct PEOPLE, in a fixed order.
+
+   Two rules, both the user's, and both learned from a real envelope:
+
+   1. Identity, not role. One owner who is also the נציג is ONE recipient. The
+      number used to come from the role (signerCount + 1), so the same human
+      holding both roles got two slots: entered twice in Zoho, two separate
+      signing requests for documents he signs once.
+
+   2. The נציג comes FIRST, then the signers in order. He is the one who signs
+      the הצהרת נהנים, and putting him last is what pushed a two-signature form
+      up to "Recipient3" - a number with nobody behind it when only two people
+      actually sign. With no נציג the signers simply take 1 and 2.
+
+   Because the order is no longer "signers first", NOTHING downstream may assume
+   signer i is recipient i+1. Each signer is handed its own number in
+   caseObject(), and docs.js/resolution.js read it. */
 function envRecipients() {
   const out = [];
   const idOf = p => normId(p && p.idNumber) || String((p && p.name) || '').trim();
@@ -7419,25 +7471,31 @@ function envRecipients() {
     out.push({ key: k, name: String((p && p.name) || '').trim(),
                idNumber: (p && p.idNumber) || '', roles: [who], docs: docs.slice() });
   };
+
+  /* the declarant first */
+  const d = declarantRaw();
+  add(d, d.who, ['הצהרת נהנים']);
+  /* then the signers, in their own order */
   const n = Math.min(2, Math.max(1, S.signerCount || 1));
   for (let i = 0; i < n; i++) {
     add(S.signers[i], 'חותם ' + (i + 1),
         i === 0 ? ['החלטת ארגון', 'CRS'] : ['החלטת ארגון']);
   }
-  const d = declarantRaw();
-  add(d, d.who, ['הצהרת נהנים']);
   return out.map((r, i) => Object.assign(r, { n: i + 1 }));
 }
 
-/* Which slot the הצהרת נהנים signature belongs to. */
-function repRecipientNo() {
-  /* sent on its own, so its only recipient is the first one */
+/* The slot a given person occupies, by identity. */
+function recipientOf(person) {
   if (S.envMode === 'each') return 1;
-  const d = declarantRaw();
-  const k = normId(d.idNumber) || String(d.name || '').trim();
+  const k = normId(person && person.idNumber) || String((person && person.name) || '').trim();
   const hit = envRecipients().find(r => r.key === k);
   return hit ? hit.n : 1;
 }
+
+/* Which slot the הצהרת נהנים signature belongs to. The declarant is now first
+   in the list, so in practice this is 1 - but it is still looked up rather than
+   assumed, because a declarant who is also a signer must land on his own row. */
+function repRecipientNo() { return recipientOf(declarantRaw()); }
 
 /* The order the recipients have to be entered in, in 'one' mode - shown in the
    UI so it is copied rather than guessed. */
@@ -7815,7 +7873,11 @@ function caseObject() {
       idNumber: s.idNumber.trim(),
       /* בעמותה אפשר להפקיד את הת"ז על הלקוח, ואז נשתלת תגית של Zoho */
       idByClient: !!s.idByClient,
-      role: s.role.trim(), roleEn: (s.roleEn || '').trim()
+      role: s.role.trim(), roleEn: (s.roleEn || '').trim(),
+      /* The envelope slot, carried WITH the signer. The נציג is recipient 1
+         now, so signer i is no longer recipient i+1 - and every tag that
+         assumed it would point at the wrong person, silently. */
+      recipient: recipientOf(s)
     })),
     declarant: declarant(),
     authOption: S.authOption, repsOption: S.repsOption,
