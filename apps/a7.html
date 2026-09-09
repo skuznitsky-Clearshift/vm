@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.47" data-built="2026-09-07" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.48" data-built="2026-09-09" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.47 | 07.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.48 | 09.09.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -2362,6 +2362,44 @@ async function buildDoc1(tplBytes, fontBytes, C) {
   const rn = d.recipient || 1;
   put(M.signerName, d.name);
   put(M.signerId, d.idNumber);
+
+  /* ---------------- עוסק מורשה: מילוי שונה לגמרי ----------------
+     עוסק מורשה הוא אדם פרטי ולא תאגיד, ולכן שני הסעיפים של התאגיד לא חלים
+     עליו. כך ביקשה הביקורת שהטופס ימולא:
+
+       רגיל          — (א) בלבד. שתי הטבלאות ריקות.
+       עוסק שותפים   — (א)(ב)(ג), והשותפים בטבלה הראשונה בשם ובת"ז בלבד.
+
+     ובשני המצבים: (ד) "אין בעל שליטה בתאגיד" מסומן תמיד, והטבלה התחתונה
+     נשארת ריקה. עד כה יצא ההיפך — התאגיד נכתב בטבלה הראשונה והבעלים בטבלה
+     התחתונה — ולכן זו החלפה של המסלול כולו ולא תוספת עליו. */
+  if (C.kind === 'osek') {
+    p.drawCheck(M.chkSelf.p, M.chkSelf.box);               /* (א) — תמיד */
+
+    const partners = (C.partners || []).filter(x => String(x.name || '').trim());
+    if (partners.length) {
+      p.drawCheck(M.chkBenef.p, M.chkBenef.box);           /* (ב) */
+      p.drawCheck(M.chkBenefList.p, M.chkBenefList.box);   /* (ג) */
+      /* שם ות"ז בלבד, לפי ההוראה. שאר העמודות בשורה נשארות ריקות במכוון —
+         לא הוקלדו, ואין להמציא להן ערך על מסמך שיוצא לחתימה. */
+      partners.slice(0, M.benef.length).forEach((x, i) => {
+        const r = M.benef[i];
+        put(Object.assign({ p: 0 }, r.name), x.name);
+        put(Object.assign({ p: 0 }, r.id), x.idNumber);
+      });
+      if (partners.length > M.benef.length)
+        p.warnings.push(`בהצהרת נהנים יש מקום ל-${M.benef.length} שותפים בלבד; ` +
+                        `${partners.length - M.benef.length} לא נכללו`);
+    }
+
+    /* (ד) — ולא (ה). זו הצהרה מכוונת ולא שדה ריק: לעוסק מורשה אין תאגיד ולכן
+       אין לו בעל שליטה בתאגיד. */
+    p.drawCheck(M.chkNoCtrl.p, M.chkNoCtrl.box);
+
+    p.drawText(M.sigTag.p, ZTAG.sign(rn), M.sigTag);
+    p.drawText(M.dateTag.p, ZTAG.date(rn), M.dateTag);
+    return p;
+  }
 
   /* (ב) receiving the service on behalf of a beneficiary, and (ג) it is the
      company — the pattern all three signed examples follow */
@@ -4894,6 +4932,8 @@ function freshState(kind) {
     signers: [blankSigner(), blankSigner()],
     reps: [],
     controllers: [],
+    /* בעוסק מורשה שותפים: הבעלים הנוספים, לטבלת הנהנים */
+    partners: [],
     authOption: 1, repsOption: 1, repsThreshold: '', proofOption: 1,
     /* An עמותה is a Non-Profit for CRS purposes, not an Active NFE — the form
        has a dedicated option and it was going out ticked as activeNFE, which is
@@ -4918,6 +4958,9 @@ function blankSigner() { return { pick: '', name: '', nameEn: '', idNumber: '', 
 function blankRep() { return { name: '', country: 'ישראל', idNumber: '', mobile: '', email: '', address: '', perms: 'E' }; }
 /* הטופס החדש החליף את עמודת "מין" בעמודת "מדינה" (מדינת התאגדות), עם ברירת
    מחדל ישראל. תאריך לידה הוא השדה היחיד שנשאר להשלמה על ידי הלקוח. */
+/* עוסק מורשה שותפים: בעלים נוסף על מי שחתום. שם ות"ז בלבד — אלה שתי
+   העמודות היחידות שהביקורת ביקשה למלא בטבלת הנהנים. */
+function blankPartner() { return { name: '', idNumber: '' }; }
 function blankCtrl() {
   return { name: '', idNumber: '', dob: '', country: 'ישראל', address: '' };
 }
@@ -6340,6 +6383,57 @@ function osekShotName() {
   return safeFileName('במקום תעודת עוסק ' + nm + ' ' + num);
 }
 
+/* עוסק מורשה שותפים — הבעלים הנוספים.
+   ההוראה מהביקורת: בעוסק רגיל שתי הטבלאות בהצהרת הנהנים ריקות ומסומן (א)
+   בלבד; בעוסק שותפים נכנסים השותפים לטבלה הראשונה בשם ובת"ז, ומסומנים
+   (א)(ב)(ג). כאן זה הופך לבחירה אחת של המשתמש — יש שותפים או אין — במקום
+   שיצטרך לדעת אילו שלוש תיבות לסמן על הטופס.
+
+   בטופס עצמו יש שתי שורות בטבלת הנהנים, ולכן זו התקרה. היא נאמרת כאן ולא
+   מתגלה כאזהרה אחרי ההורדה. */
+function osekPartnersPanel() {
+  const box = el('div', {});
+  const CAP = FIELDMAP.doc1.benef.length;
+  const real = () => S.partners.filter(x => String(x.name || '').trim());
+
+  box.append(sechd('שותפים בעוסק — להצהרת הנהנים'));
+  box.append(el('div', { class: 'note i' },
+    'בעוסק מורשה רגיל אין מה למלא כאן: בהצהרת הנהנים מסומן ',
+    el('b', {}, '(א) "אני מבקש לקבל את השירותים בעבור עצמי בלבד"'),
+    ', ושתי הטבלאות יוצאות ריקות. ',
+    el('b', {}, 'אם זה עוסק מורשה שותפים'),
+    ' — הוסף כאן את הבעלים הנוספים, והטופס יסומן במקום זה על ',
+    el('b', {}, '(א), (ב) ו-(ג)'), ' והם ייכתבו בטבלה הראשונה.'));
+  box.append(el('div', { class: 'note k' },
+    el('b', {}, 'בכל מקרה: '),
+    'הטבלה התחתונה נשארת ריקה ומסומן ', el('b', {}, '(ד) "אין בעל שליטה בתאגיד"'),
+    ' — לעוסק מורשה אין תאגיד ולכן אין לו בעל שליטה בתאגיד.'));
+
+  if (S.partners.length) {
+    box.append(el('div', { class: 'tscroll', style: 'margin-top:14px' },
+      el('table', { class: 'g' },
+        el('tr', {}, ['#', 'שם מלא', 'מס\' ת"ז', ''].map(h => el('th', {}, h))),
+        S.partners.map((x, i) => el('tr', {},
+          el('td', { class: 'mono' }, String(i + 1)),
+          el('td', {}, tdInp(x, 'name')),
+          el('td', {}, tdInp(x, 'idNumber', 1)),
+          el('td', {}, el('button', { class: 'btn-sm btn-danger',
+            onclick: () => { S.partners.splice(i, 1); render(); } }, 'הסר')))))));
+    if (real().length > CAP) box.append(el('div', { class: 'note e' },
+      el('b', {}, 'שים לב: '),
+      `בטבלת הנהנים יש ${CAP} שורות בלבד. ` +
+      `${real().length - CAP} השותפים האחרונים לא ייכנסו למסמך — הסר או מזג.`));
+  }
+
+  if (S.partners.length < CAP)
+    box.append(el('div', { class: 'bar', style: 'border:none;padding-top:12px;margin-top:8px' },
+      el('button', { class: 'btn-sm', onclick: () => {
+        S.partners.push(blankPartner()); render();
+      } }, S.partners.length ? '＋ שותף נוסף' : '＋ הוסף שותף (עוסק מורשה שותפים)')));
+
+  return box;
+}
+
 /* עוסק מורשה: אדם אחד שהוא הבעלים, החותם והנציג */
 function osekPersonPanel() {
   const p = el('div', { class: 'panel' });
@@ -6388,9 +6482,11 @@ function syncOsek() {
      אחרת היא נדלגת בכל מסלול שלא עובר דרך אותו מסך. */
   const reg = String(S.company.regNumber || '').replace(/\D/g, '');
   if (reg.length === 9) me.idNumber = reg;
-  S.controllers = [Object.assign(blankCtrl(), {
-    name: me.name, idNumber: me.idNumber, dob: me.dob || '',
-    country: 'ישראל', address: me.address || '' })];
+  /* בעוסק מורשה הטבלה התחתונה של הצהרת הנהנים נשארת ריקה ומסומן (ד) "אין בעל
+     שליטה בתאגיד". לכן אין יותר בעלי שליטה בעוסק — וגם אין להחזיק אותם:
+     רשימה שאינה מגיעה לשום מסמך אבל כן נבדקת בשער ההורדה היא בדיוק הסוג של
+     נתון שחוסם הפקה בלי שיהיה לו לאן לצאת. */
+  S.controllers = [];
   S.signerCount = 1;
   /* החותם הוא בעל העסק — כברירת מחדל בלבד. ברגע שנגעו בפרטי החותם הסנכרון
      מפסיק לדרוס אותו: קודם, חזרה למסך הראשון מחקה בשקט חותם אחר שנבחר
@@ -6990,8 +7086,13 @@ function screenCompany() {
 
   /* ---- מי חותם ומי נהנה ----
      בעמותה אין בעלי מניות. המסמכים צריכים ארבעה תפקידים בשמם: יו"ר, מנכ"ל
-     ושני מורשי חתימה. בחברה ובעוסק נשארת טבלת בעלי השליטה כרגיל. */
+     ושני מורשי חתימה.
+
+     בעוסק מורשה אין בעלי שליטה בכלל: הטבלה התחתונה של הצהרת הנהנים נשארת
+     ריקה ומסומן (ד). לכן במקום טבלת בעלי השליטה — שלא הייתה מגיעה לשום מסמך
+     ורק הייתה מטעה — מוצג כאן הפאנל של השותפים. */
   if (S.kind === 'amuta') { p.append(amutaRolesPanel()); }
+  else if (S.kind === 'osek') { p.append(osekPartnersPanel()); }
   else {
   /* ---- controlling persons (הצהרת נהנים) ---- */
   p.append(sechd('בעלי שליטה — להצהרת הנהנים'));
@@ -7882,7 +7983,16 @@ function caseObject() {
     declarant: declarant(),
     authOption: S.authOption, repsOption: S.repsOption,
     repsThreshold: S.repsThreshold, proofOption: S.proofOption,
-    controllers: S.controllers.map(ct => Object.assign({}, ct, { dob: normalizeDob(ct.dob) })),
+    /* בעוסק מורשה הטבלה התחתונה של הצהרת הנהנים ריקה תמיד, ולכן הרשימה לא
+       נשלחת בכלל — לא כדי "לחסוך", אלא כדי שערך שנשאר מזרימה קודמת לא יוכל
+       להגיע בשקט למסמך שכבר אינו אמור להכיל אותו. */
+    controllers: S.kind === 'osek' ? []
+      : S.controllers.map(ct => Object.assign({}, ct, { dob: normalizeDob(ct.dob) })),
+    /* עוסק מורשה שותפים: שם ות"ז בלבד, לטבלת הנהנים */
+    partners: S.kind === 'osek'
+      ? S.partners.filter(x => String(x.name || '').trim())
+          .map(x => ({ name: x.name.trim(), idNumber: (x.idNumber || '').trim() }))
+      : [],
     reps: repsForCase(), crs: S.crs
   };
 }
