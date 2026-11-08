@@ -646,7 +646,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
 })();
 
 </script>
-<!--SKGATE--><script data-tool="a7" data-ver="1.48" data-built="2026-09-09" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
+<!--SKGATE--><script data-tool="a7" data-ver="1.49" data-built="2026-11-08" data-log="https://script.google.com/macros/s/AKfycbwJwD-bETNuDXdt9_Q4jhI7_xBQ801_lWHpF4jxxdMKnhEnOBL89vZU35gXHuhtp2aKEg/exec">
 /* ============================================================================
    SK Gate — version gate, kill switch and first-run identity for the SK tools
    ----------------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ legend{font-size:11px;letter-spacing:.09em;color:var(--ink-3);font-weight:600;pa
     <span class="logo" role="img" aria-label="ClearShift"></span>
     <span class="sep"></span>
     <b>מסמכים ל-ZOHO SIGN</b>
-    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.48 | 09.09.2026</span>
+    <span class="ver" title="גרסת הכלי — ציין אותה כשמדווחים על תקלה">v1.49 | 08.11.2026</span>
   </span>
   <span class="spacer"></span>
   <span id="topact"></span>
@@ -6088,6 +6088,9 @@ function osekResult(r) {
       style: 'width:100%;height:320px;border:1px solid var(--rule);border-radius:8px;' +
              'background:#fff;margin-top:12px'
     });
+    /* SEC-07: external HTML runs with no scripts. allow-same-origin lets this page
+       set the title and print; without allow-scripts the frame itself can't act. */
+    frame.setAttribute('sandbox', 'allow-same-origin allow-modals');
     let html = String(r.resultHtml);
     if (!/<base\s/i.test(html)) {
       html = html.replace(/(<head[^>]*>)/i,
@@ -6557,8 +6560,25 @@ function tdDate(obj, key) {
    בכפתור אחד. כל גישה עטופה ב-try: בתצוגה מוטמעת הקריאה זורקת SecurityError
    ובלי העטיפה היא הורגת את שאר הסקריפט. */
 const PEOPLE_KEY = 'cs-zoho-people-v1';
+/* SEC-08: personal details are kept for a limited time only. An entry not used
+   for PEOPLE_TTL_DAYS is deleted automatically; "forget" still clears it all. */
+const PEOPLE_TTL_DAYS = 90;
 function peopleBook() {
-  try { return JSON.parse(localStorage.getItem(PEOPLE_KEY) || '{}') || {}; }
+  try {
+    const b = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '{}') || {};
+    const now = Date.now(), ttl = PEOPLE_TTL_DAYS * 86400000;
+    let changed = false;
+    Object.keys(b).forEach(n => {
+      if (!b[n] || typeof b[n] !== 'object') { delete b[n]; changed = true; return; }
+      if (!b[n].t) { b[n].t = now; changed = true; }
+      else if (now - b[n].t > ttl) { delete b[n]; changed = true; }
+    });
+    if (changed) {
+      if (Object.keys(b).length) localStorage.setItem(PEOPLE_KEY, JSON.stringify(b));
+      else localStorage.removeItem(PEOPLE_KEY);
+    }
+    return b;
+  }
   catch (e) { return {}; }
 }
 function rememberPerson(p) {
@@ -6569,7 +6589,8 @@ function rememberPerson(p) {
     b[name] = { idNumber: String(p.idNumber || '').trim(),
                 dob: String(p.dob || '').trim(),
                 address: String(p.address || '').trim(),
-                country: String(p.country || '').trim() };
+                country: String(p.country || '').trim(),
+                t: Date.now() };
     localStorage.setItem(PEOPLE_KEY, JSON.stringify(b));
   } catch (e) { /* storage blocked — the tool still works, it just forgets */ }
 }
